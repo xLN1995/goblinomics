@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- The Salvage list shows one row per disenchanted item. Copies of the same
+  item with different stats (for example several Courtly Wrists) were listed
+  separately.
+
 ## [1.0.1] - 2026-10-04
 
 ### Added

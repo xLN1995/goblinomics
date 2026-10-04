@@ -15,6 +15,8 @@ local module
 
 --- Rows per salvaged item: { input, operations, used, cost, yield, gain, outputs = { [key] = qty },
 --   revenue, soldCost, profit } sorted by gain. filter = { from, profession, char }
+-- One row per base item: disenchanted gear of the same item with other bonus IDs
+-- or stats counts together (input is the base key then).
 function Salvage.Rows(filter)
     filter = filter or {}
     local rows, byInput, craftToRow = {}, {}, {}
@@ -22,10 +24,11 @@ function Salvage.Rows(filter)
         if r.kind == "salvage" and (not filter.from or r.time >= filter.from) and (not filter.to or r.time < filter.to)
             and (not filter.profession or filter.profession == r.profession)
             and (not filter.char or filter.char == r.char) then
-            local key = r.input or ("recipe:" .. r.recipe)
+            local input = ns.API.ItemKey.Base(r.input)
+            local key = input or ("recipe:" .. r.recipe)
             local row = byInput[key]
             if not row then
-                row = { input = r.input, name = r.name, profession = r.profession, method = r.method,
+                row = { input = input, name = r.name, profession = r.profession, method = r.method,
                     operations = 0, used = 0, cost = 0,
                     yield = 0, outputs = {}, revenue = 0, soldCost = 0, transferred = 0, openValue = 0 }
                 byInput[key] = row
