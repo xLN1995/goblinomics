@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.0.2] - 2026-10-04
 
 ### Fixed
 - The Salvage list shows one row per disenchanted item. Copies of the same
