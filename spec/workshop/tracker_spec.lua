@@ -59,6 +59,18 @@ describe("Workshop: craft tracker and lots", function()
         assert.equals(0, wns.Lots.Sell("i:999", 1, 500))
     end)
 
+    it("matches a sale with other bonus IDs after the exact variant", function()
+        S.craft(100, {}, { { S.result({ id = 502, qty = 2 }) } })
+        GoblinomicsWorkshopDB.lots[1].key = "i:502::2:10397:10398"
+        WoWMock.advance(10)
+        S.craft(100, {}, { { S.result({ id = 502 }) } })
+        assert.equals(2, wns.Lots.Sell("i:502", 2, 1000))
+        local m = GoblinomicsWorkshopDB.matches
+        assert.equals(GoblinomicsWorkshopDB.crafts[2].id, m[1].craft)   -- exact key first
+        assert.equals(GoblinomicsWorkshopDB.crafts[1].id, m[2].craft)
+        assert.equals(1, GoblinomicsWorkshopDB.lots[1].qty)
+    end)
+
     it("keeps old lots out of the open stock but matches late sales", function()
         S.craft(100, {}, { { S.result({ id = 502 }) } })
         WoWMock.advance(91 * 86400)

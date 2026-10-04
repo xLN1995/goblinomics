@@ -271,10 +271,17 @@ _G.C_Item = {
     GetItemInfo = function(query)
         local id = type(query) == "number" and query or tonumber(tostring(query):match("item:(%d+)"))
         local info = mock.items[query] or mock.items[id]
+        if not info and not id then
+            -- by name, like the client for items in its cache
+            for _, v in pairs(mock.items) do
+                if type(v) == "table" and v.name == query and v.cached ~= false then info = v; break end
+            end
+        end
         if not info then return nil end
         return info.name or "Item", info.link, info.quality or 1, nil, nil, nil, nil, nil, nil, nil, info.sellPrice or 0,
             info.classID, info.subclassID, info.bindType
     end,
+    GetItemNameByID = function(id) local info = mock.items[id]; return info and info.name end,
     RequestLoadItemDataByID = function(id) mock.itemRequests[#mock.itemRequests + 1] = id end,
     GetItemIconByID = function(id) return 1000 + id end,
     IsBoundToAccountUntilEquip = function(loc) return mock.warboundSlots[(loc.bag or -1) .. ":" .. (loc.slot or -1)] == true end,

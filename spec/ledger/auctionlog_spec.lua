@@ -75,6 +75,44 @@ describe("Ledger: auction log", function()
         end)
     end)
 
+    describe("item auctions the log did not see posted (bags)", function()
+        local BAG = "|cff1eff00|Hitem:222::::::::80:::::|h[Weavercloth Bag]|h|r"
+
+        local function sellBag(buyer)
+            mailOpen()
+            WoWMock.mail = { { sender = "Auction House", subject = "Auction successful", money = 9500,
+                invoice = { type = "seller", itemName = "Weavercloth Bag", player = buyer, bid = 10000, count = 1 } } }
+            TakeInboxMoney(1)
+        end
+
+        it("resolves the key through the client's item cache by name", function()
+            WoWMock.items[222] = { name = "Weavercloth Bag", link = BAG }
+            assert.equals("i:222", A.KeyForSale("Weavercloth Bag", 1, 10000))
+        end)
+
+        it("keeps the item name next to the buyer when no key is known", function()
+            local decision = lns.Monitors.MailDecision
+            WoWMock.mail = { { invoice = { type = "seller", itemName = "Weavercloth Bag", player = "Buyer",
+                bid = 10000, count = 1 } } }
+            local d = decision(1, "Auction House", "Auction successful")
+            assert.is_nil(d.itemKey)
+            assert.equals("Weavercloth Bag (Buyer)", d.note)
+            WoWMock.items[222] = { name = "Weavercloth Bag", link = BAG }
+            d = decision(1, "Auction House", "Auction successful")
+            assert.equals("i:222", d.itemKey)
+            assert.equals("Buyer", d.note)
+        end)
+
+        it("logs an item posting by its item ID when the slot has no link any more", function()
+            WoWMock.items[222] = { name = "Weavercloth Bag", cached = false }
+            WoWMock.fire("PLAYER_INTERACTION_MANAGER_FRAME_SHOW", Enum.PlayerInteractionType.Auctioneer)
+            C_AuctionHouse.PostItem({ itemID = 222 }, 2, 1, 0, 10000)
+            assert.equals("i:222", A.KeyForName("Weavercloth Bag"))
+            sellBag("Buyer")
+            assert.equals(1, A.Stats("i:222").sold)
+        end)
+    end)
+
     it("links invoice sales to the item via the name and computes price and sale rate", function()
         A.Post("i:2589", 5, 100, LINEN)
         A.Post("i:2589", 5, 100, LINEN)

@@ -120,8 +120,8 @@ local SCENARIOS = {
             { sender = "Friend", subject = "Gift", money = 300 },
         }
         AutoLootMailItem(1); AutoLootMailItem(2); AutoLootMailItem(3); money(9500 + 1900 + 300)
-    -- the second sale has no item key (no posting) and merges into the first booking
-    end, { { "AH", "sale", 9500 }, { "AH", "sale", 11400 }, { "Mail", "in", 300 } } },
+    -- sales without an item key keep name and buyer apart instead of merging
+    end, { { "AH", "sale", 9500 }, { "AH", "sale", 1900 }, { "Mail", "in", 300 } } },
     { "open all: expected sales that fit, the rest from the context", function()
         open("MailInfo")
         WoWMock.mail = {
@@ -131,7 +131,7 @@ local SCENARIOS = {
                 invoice = { type = "seller", itemName = "Linen Cloth", player = "B", bid = 2000, count = 1 } },
         }
         AutoLootMailItem(1); AutoLootMailItem(2); money(9500 + 1900 + 40)
-    end, { { "AH", "sale", 9500 }, { "AH", "sale", 11400 }, { "Mail", "in", 40 } } },
+    end, { { "AH", "sale", 9500 }, { "AH", "sale", 1900 }, { "Mail", "in", 40 } } },
     { "plain mail with gold", function()
         open("MailInfo"); WoWMock.mail = { { sender = "Friend", subject = "Gift", money = 777 } }
         AutoLootMailItem(1); money(777)

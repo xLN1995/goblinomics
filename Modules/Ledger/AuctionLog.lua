@@ -11,7 +11,8 @@ if GOBLINOMICS_CLIENT_BLOCKED then return end
 -- Invoices only name the item. Open postings per name { key, remaining, unit,
 -- time } resolve the key: the oldest posting with the same unit price wins, else
 -- the oldest one with that name. This keeps qualities with the same name apart
--- (reagent qualities, crafted gear). Expired and cancelled auctions consume
+-- (reagent qualities, crafted gear). Items posted elsewhere resolve through the
+-- client's item cache by name. Expired and cancelled auctions consume
 -- postings too. Sales emit LEDGER_AH_EVENT with net proceeds and unit price.
 local _, ns = ...
 
@@ -79,7 +80,11 @@ function AuctionLog.KeyForSale(name, quantity, amount)
     local key = list and Consume(list, quantity or 1, function(e)
         return unit ~= nil and e.unit ~= nil and math.abs(e.unit - unit) <= 1
     end)
-    return key or root.ah.names[name]
+    key = key or root.ah.names[name]
+    if key then return key end
+    -- not posted through this addon: the client may still know the item by name
+    local link = select(2, C_Item.GetItemInfo(name))
+    return link and API.ItemKey.FromLink(link) or nil
 end
 
 local function ConsumeKey(key, quantity)
@@ -104,9 +109,11 @@ local function PruneOpen()
     end
 end
 
-local function NameOf(link)
-    if not link then return nil end
-    return (C_Item.GetItemInfo(link))
+local function NameOf(link, key)
+    local name = link and C_Item.GetItemInfo(link)
+    if name then return name end
+    local id = API.ItemKey.ToItemID(key)
+    return id and C_Item.GetItemNameByID and C_Item.GetItemNameByID(id) or nil
 end
 
 function AuctionLog.KeyForName(name)
@@ -115,7 +122,7 @@ end
 
 function AuctionLog.Post(key, quantity, deposit, link, unitPrice)
     if not key then return end
-    local name = NameOf(link or API.ItemKey.ToItemString(key))
+    local name = NameOf(link or API.ItemKey.ToItemString(key), key)
     if name then
         root.ah.names[name] = key
         local list = OpenList(name)

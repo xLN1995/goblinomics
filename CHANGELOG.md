@@ -1,5 +1,20 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- Auction sales of single items such as bags now show the item in the Ledger,
+  not only the buyer, even when Goblinomics did not see the auction being
+  posted. If the item can't be identified at all, its name still appears next
+  to the buyer.
+- Crafted items sold that way now count towards their recipe in the Workshop
+  (revenue and profit), also when the sold copy has other bonus IDs than the
+  crafted one.
+- Several such sales taken at once no longer merge into one Ledger row with
+  the first buyer's name.
+- Existing sales are repaired once after the update where the auction log
+  still knows the item.
+
 ## [1.0.0] - 2026-10-04
 
 The first stable release. Thanks to everyone who tested the betas.

@@ -18,10 +18,12 @@ local Ledger = API.RegisterModule(ADDON_NAME, {
     order = 20,
     db = {
         sv = "GoblinomicsLedgerDB",
-        version = 2,
+        version = 3,
         migrations = {
             -- schema 2: auction sales that "open all" booked as Mail (Repair.lua)
             [2] = function(root) if ns.Repair then ns.Repair.MergedMail(root) end end,
+            -- schema 3: auction sales without an item key (Repair.lua)
+            [3] = function(root) if ns.Repair then ns.Repair.SaleKeys(root) end end,
         },
         defaults = {
             mailRules = {},
