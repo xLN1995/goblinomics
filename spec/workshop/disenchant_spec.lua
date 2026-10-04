@@ -55,6 +55,22 @@ describe("Workshop: disenchanting", function()
         assert.equals(0, #wns.Stats.Recipes({}))   -- not a recipe row
     end)
 
+    it("puts disenchanted copies of one item with other stats into one row", function()
+        local function variant(stats)
+            return ("|cnIQ3:|Hitem:222::::::::81:64::13:1:12249:2:29:%d:30:40::::Player-581-0AF7409A:|h[Bag]|h|r"):format(stats)
+        end
+        WoWMock.bags[0][1].hyperlink = variant(32)
+        disenchant({ { 950, 1 } }, { click = true })
+        WoWMock.bags[0][1].hyperlink = variant(36)
+        disenchant({ { 951, 1 } }, { click = true })
+        local rows = wns.Salvage.Rows({})
+        assert.equals(1, #rows)
+        assert.equals("i:222", rows[1].input)
+        assert.equals(2, rows[1].operations)
+        assert.equals(2, rows[1].used)
+        assert.same({ ["i:950"] = 1, ["i:951"] = 1 }, rows[1].outputs)
+    end)
+
     it("counts later sales of the dust for the disenchanted item", function()
         disenchant({ { 950, 3 } }, { locked = true })
         wns.Lots.Sell("i:950", 3, 1800)
