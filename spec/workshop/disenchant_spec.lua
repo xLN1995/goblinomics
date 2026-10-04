@@ -24,12 +24,16 @@ describe("Workshop: disenchanting", function()
     local function disenchant(yield, opts)
         opts = opts or {}
         if opts.click then C_Container.UseContainerItem(0, 1) end
-        WoWMock.bags[0][1].isLocked = opts.locked
+        WoWMock.advance(0.3)
         WoWMock.fire("UNIT_SPELLCAST_START", "player", "Cast-1", DE)
         WoWMock.advance(1.5)
         if opts.removedEarly then ns.Bus.Emit("ITEMS_DELTA", { changes = opts.removedEarly }) end
         WoWMock.fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-1", DE)
-        WoWMock.bags[0][1].isLocked = nil
+        if opts.locked then
+            WoWMock.bags[0][1].isLocked = true
+            WoWMock.fire("ITEM_LOCK_CHANGED", 0, 1)
+            WoWMock.bags[0][1].isLocked = nil
+        end
         if opts.removed then ns.Bus.Emit("ITEMS_DELTA", { changes = opts.removed }) end
         for _, y in ipairs(yield) do loot(y[1], y[2]) end
         WoWMock.advance(3.1)
@@ -60,9 +64,10 @@ describe("Workshop: disenchanting", function()
         assert.equals(300, wns.Stats.Breakdown({}).salvage)
     end)
 
-    it("takes the bag item used right before the cast when nothing is locked", function()
+    it("takes the bag item used right before the cast (spell + click, TSM macro)", function()
+        WoWMock.bags[0][1].hyperlink = "|cnIQ3:|Hitem:222::::::::81:64::13:1:12249:0::::Player-581-0AF7409A:|h[Bag]|h|r"
         disenchant({ { 950, 2 } }, { click = true })
-        assert.equals("i:222", GoblinomicsWorkshopDB.crafts[1].input)
+        assert.equals("i:222::1:12249", GoblinomicsWorkshopDB.crafts[1].input)
     end)
 
     it("takes the item that left the bags, also before the cast's success event", function()
@@ -73,9 +78,10 @@ describe("Workshop: disenchanting", function()
         assert.equals("i:222", GoblinomicsWorkshopDB.crafts[2].input)
     end)
 
-    it("does not guess when several items are locked", function()
-        WoWMock.bags[0][2] = { itemID = 223, hyperlink = S.link(223), stackCount = 1, isLocked = true }
-        disenchant({ { 950, 1 } }, { locked = true })
+    it("ignores item locks long after the cast", function()
+        disenchant({ { 950, 1 } })
+        WoWMock.bags[0][1].isLocked = true
+        WoWMock.fire("ITEM_LOCK_CHANGED", 0, 1)
         assert.is_nil(GoblinomicsWorkshopDB.crafts[1].input)
     end)
 
