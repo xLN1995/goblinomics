@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.0.1] - 2026-10-04
 
 ### Added
 - Disenchanting is tracked in the Workshop under Salvage. For each
