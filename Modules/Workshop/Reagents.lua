@@ -125,6 +125,23 @@ function Reagents.Returned(results)
     return returned
 end
 
+--- Stored form of Cost lines:
+-- { { key, consumed, unit (per net item), market unit, from purchases, from crafts, returned, cost } }
+function Reagents.Compact(lines)
+    local reagents = {}
+    for i, l in ipairs(lines) do
+        reagents[i] = { l.key, l.qty, l.unit, l.market, l.purchased, l.crafted, l.returned, l.cost }
+    end
+    return reagents
+end
+
+--- Market value of outputs { { key = , qty = } } (unknown prices count 0).
+function Reagents.Value(outputs)
+    local value = 0
+    for _, o in ipairs(outputs) do value = value + (Reagents.UnitPrice(o.key) or 0) * o.qty end
+    return value
+end
+
 --- Unit price for costs: market, else destroy, else vendor (nil = unknown).
 function Reagents.UnitPrice(key)
     local Price = ns.API.Price

@@ -31,9 +31,11 @@ describe("Code rules", function()
                     if seen[event] then dups[#dups + 1] = dir .. " " .. event end
                     seen[event] = true
                 end
-                for event in src:gmatch('[%a_]+:RegisterEvent%("([%u_]+)"') do
-                    if seen["event:" .. event] then dups[#dups + 1] = dir .. " RegisterEvent " .. event end
-                    seen["event:" .. event] = true
+                -- an explicit handler key (third argument) keeps handlers apart
+                for event, rest in src:gmatch('[%a_]+:RegisterEvent%("([%u_]+)"([^\n]*)') do
+                    local id = "event:" .. event .. ":" .. (rest:match(',[^,]+,%s*"([%w_]+)"%)') or event)
+                    if seen[id] then dups[#dups + 1] = dir .. " RegisterEvent " .. event end
+                    seen[id] = true
                 end
             end
             files:close()

@@ -35,11 +35,7 @@ local function RecomputeCraft(r)
         saved = r.saved or 0
         cost = cost - saved
     end
-    local reagents = {}
-    for i, l in ipairs(lines) do
-        reagents[i] = { l.key, l.qty, l.unit, l.market, l.purchased, l.crafted, l.returned, l.cost }
-    end
-    r.reagents = reagents
+    r.reagents = ns.Reagents.Compact(lines)
     if r.costSource ~= "craftsim" then
         r.cost = cost
         r.saved = saved

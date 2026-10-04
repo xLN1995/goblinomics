@@ -36,6 +36,7 @@ local Workshop = API.RegisterModule(ADDON_NAME, {
 ns.Workshop = Workshop
 
 local PARTS = { "Recipes", "Reagents", "Purchases", "CraftTracker", "Lots", "Orders", "Concentration", "Salvage",
+    "Disenchant",
     "Stats", "Retention", "Recompute", "Professions", "ProfessionNotices", "Pulse", "PulseNotices", "ProfessionButton",
     "WorkshopSummary", "WorkshopUI", "WorkshopProfessions", "WorkshopPulse" }
 

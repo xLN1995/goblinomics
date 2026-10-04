@@ -257,6 +257,7 @@ _G.GetAddOnMemoryUsage = function() return 512 end
 
 -- Containers
 _G.C_Container = {
+    UseContainerItem = function() end,
     GetContainerNumSlots = function(bag) local b = mock.bags[bag]; return b and b.numSlots or 0 end,
     GetContainerItemInfo = function(bag, slot)
         local b = mock.bags[bag]

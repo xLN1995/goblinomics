@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Added
+- Disenchanting is tracked in the Workshop under Salvage. For each
+  disenchanted item you see how often you disenchanted it, what it cost you
+  (what you paid for it, its crafting cost, or else its market price), the
+  dust and shards it gave, and, once those are sold, the income and profit.
+
 ### Fixed
 - Auction sales of single items such as bags now show the item in the Ledger,
   not only the buyer, even when Goblinomics did not see the auction being

@@ -358,7 +358,9 @@ function Detail.BuildSalvage(parent)
             row:SetScript("OnLeave", W.HideTooltip)
         end
         row.data = s
-        row.first:SetText(s.input and (UI.ItemLabel(s.input)) or (s.name or "?"))
+        local label = s.input and (UI.ItemLabel(s.input)) or (s.name or "?")
+        if s.method == "disenchant" and s.input then label = label .. "  " .. CODE.dim .. s.name .. "|r" end
+        row.first:SetText(label)
         row.cells[1]:SetText(tostring(s.operations))
         row.cells[2]:SetText(UI.Money(s.cost))
         local income = s.revenue + s.transferred

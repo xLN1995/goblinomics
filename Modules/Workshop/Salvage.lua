@@ -1,6 +1,6 @@
 if GOBLINOMICS_CLIENT_BLOCKED then return end
 -- Modules/Workshop/Salvage.lua
--- Salvage (milling, prospecting, crushing, shatter): per salvaged item the
+-- Salvage (milling, prospecting, crushing, shatter, disenchanting): per salvaged item the
 -- operations, items used and their cost, and on a cash basis what the yield
 -- brought in: revenue of sold yields plus the cost share of yields used in
 -- crafts; profit = that minus all costs of the operations (unsold yields make
@@ -25,7 +25,8 @@ function Salvage.Rows(filter)
             local key = r.input or ("recipe:" .. r.recipe)
             local row = byInput[key]
             if not row then
-                row = { input = r.input, name = r.name, profession = r.profession, operations = 0, used = 0, cost = 0,
+                row = { input = r.input, name = r.name, profession = r.profession, method = r.method,
+                    operations = 0, used = 0, cost = 0,
                     yield = 0, outputs = {}, revenue = 0, soldCost = 0, transferred = 0, openValue = 0 }
                 byInput[key] = row
                 rows[#rows + 1] = row

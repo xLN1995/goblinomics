@@ -205,8 +205,9 @@ function Module:IsEnabled()
 end
 
 --- Register a WoW event while the module is enabled. handler: function(event, ...)
--- or the name of a method (called as self:method(event, ...)).
-function Module:RegisterEvent(event, handler)
+-- or the name of a method (called as self:method(event, ...)). key (default: the
+-- event) lets several parts of a module handle the same event.
+function Module:RegisterEvent(event, handler, key)
     if self.state ~= "enabled" then
         error(("module %q: RegisterEvent only while enabled (in OnEnable or later)"):format(self.id), 2)
     end
@@ -215,12 +216,12 @@ function Module:RegisterEvent(event, handler)
         local name = fn
         fn = function(e, ...) return self[name](self, e, ...) end
     end
-    self.events:Unregister(event, event)
-    return self.events:Register(event, fn, event)
+    self.events:Unregister(event, key or event)
+    return self.events:Register(event, fn, key or event)
 end
 
-function Module:UnregisterEvent(event)
-    self.events:Unregister(event, event)
+function Module:UnregisterEvent(event, key)
+    self.events:Unregister(event, key or event)
 end
 
 function Module:On(event, fn)

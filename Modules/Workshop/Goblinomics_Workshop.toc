@@ -24,6 +24,7 @@ Pulse.lua
 PulseNotices.lua
 ProfessionButton.lua
 Salvage.lua
+Disenchant.lua
 Stats.lua
 Retention.lua
 Recompute.lua
