@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Added
+- Disenchanting is tracked in the Workshop under Salvage. For each
+  disenchanted item you see how often you disenchanted it, what it cost you
+  (what you paid for it, its crafting cost, or else its market price), the
+  dust and shards it gave, and, once those are sold, the income and profit.
+
 ### Fixed
 - Auction sales of single items such as bags now show the item in the Ledger,
   not only the buyer, even when Goblinomics did not see the auction being
@@ -14,6 +20,9 @@
   the first buyer's name.
 - Existing sales are repaired once after the update where the auction log
   still knows the item.
+- Items crafted by players (their link names the crafter) were not recognised
+  at all: they were missing from bag tracking, auction postings and the
+  Workshop's sale matching. They are now read like any other item.
 
 ## [1.0.0] - 2026-10-04
 

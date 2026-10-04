@@ -124,7 +124,9 @@ function ItemKey.FromLink(link)
         return "p:" .. species
     end
 
-    local body = link:match("|Hitem:([%-%d:]*)|h") or link:match("^item:([%-%d:]*)$")
+    -- crafted items end in the crafter's GUID ("Player-581-0AF7409A"): any text
+    -- up to |h, non-numeric fields count as 0
+    local body = link:match("|Hitem:([^|]*)|h") or link:match("^item:([^|]*)$")
     if not body then
         return nil
     end

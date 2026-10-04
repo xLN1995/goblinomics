@@ -158,11 +158,7 @@ function Tracker.Flush()
     local returned = ns.Reagents.Returned(kept)
     local lines, cost, saved, incomplete = ns.Reagents.Cost(consumed, returned, { time = time() })
     local info = ns.Recipes.Info(op.recipeID) or {}
-    local reagents = {}
-    -- { key, consumed, unit (per net item), market unit, from purchases, from crafts, returned, cost }
-    for i, l in ipairs(lines) do
-        reagents[i] = { l.key, l.qty, l.unit, l.market, l.purchased, l.crafted, l.returned, l.cost }
-    end
+    local reagents = ns.Reagents.Compact(lines)
     local record = {
         id = ns.NextId(), time = time(), char = module.db.charKey, recipe = op.recipeID, name = info.name,
         profession = info.profession, kind = op.kind, crafts = crafts, reagents = reagents,
@@ -185,9 +181,7 @@ function Tracker.Flush()
         record.cost, record.costSource = op.craftSimFallback * math.max(1, made), "craftsim"
     end
     if op.kind == "salvage" then
-        local yield = 0
-        for _, o in ipairs(outputs) do yield = yield + (ns.Reagents.UnitPrice(o.key) or 0) * o.qty end
-        record.yield = yield
+        record.yield = ns.Reagents.Value(outputs)
         record.input = op.salvageItemID and ("i:" .. op.salvageItemID) or nil
     end
     table.insert(module.db.root.crafts, record)
