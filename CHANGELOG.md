@@ -20,6 +20,9 @@
   the first buyer's name.
 - Existing sales are repaired once after the update where the auction log
   still knows the item.
+- Items crafted by players (their link names the crafter) were not recognised
+  at all: they were missing from bag tracking, auction postings and the
+  Workshop's sale matching. They are now read like any other item.
 
 ## [1.0.0] - 2026-10-04
 

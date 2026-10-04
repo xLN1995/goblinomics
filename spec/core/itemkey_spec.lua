@@ -45,6 +45,13 @@ describe("Core/Util/ItemKey", function()
         assert.equals("i:212072:::1:9:620", ItemKey.FromLink("item:212072::::::::80:105::5:0:1:9:620"))
     end)
 
+    it("reads crafted items whose link ends in the crafter's GUID", function()
+        local link = "|cnIQ3:|Hitem:239671::::::::81:64::13:5:12249:12248:4785:12494:12667:6:28:3615:29:32:30:40:38:5"
+            .. ":40:2568:48:246211::::Player-581-0AF7409A:|h[Courtly Wrists |A:Professions-ChatIcon-Quality-Tier2:17:15::1|a]|h|r"
+        assert.equals("i:239671::5:4785:12248:12249:12494:12667:2:29:32:30:40", ItemKey.FromLink(link))
+        assert.equals("i:239671", ItemKey.FromLink("item:239671::::::::81:64::13:0:0::::Player-581-0AF7409A:"))
+    end)
+
     it("applies an installed bonus filter", function()
         ItemKey.SetBonusFilter(function(bonus)
             local kept = {}
