@@ -2,11 +2,13 @@ if GOBLINOMICS_CLIENT_BLOCKED then return end
 -- Modules/Workshop/Disenchant.lua
 -- Disenchanting as salvage. Disenchant is a spell cast on a bag item, not a
 -- profession salvage call, so the operation is put together from
---   1. the bag item used right before the cast starts (post-hook on
---      C_Container.UseContainerItem: the targeting spell takes the item from it)
---   2. else the single item that left the bags after the cast (ITEMS_DELTA), for
---      secure macros that do not pass the hook (TSM's destroy button)
---   3. the loot of the cast (LOOT_RECEIVED with source "disenchant", Core/Loot)
+--   1. the bag item the client locks when the cast starts: the spell's target,
+--      however the cast was started (spell + click, TSM's "/cast; /use bag slot"
+--      macro button, other macros)
+--   2. else the bag item used right before the cast (post-hook on
+--      C_Container.UseContainerItem)
+--   3. else the single item that left the bags around the cast (ITEMS_DELTA)
+--   4. the loot of the cast (LOOT_RECEIVED with source "disenchant", Core/Loot)
 -- One record per cast with kind "salvage" and method "disenchant": the item's
 -- cost (purchase, crafted lot, else market price) against the yield. The yield
 -- becomes lots, so later sales of the dust count for the disenchanted item.
@@ -19,12 +21,15 @@ local SPELL = 13262
 local ENCHANTING = 333   -- skill line
 local USE_WINDOW = 1     -- item use -> cast start
 local LOOT_WINDOW = 3    -- cast success -> loot and bag change
+local REMOVED_TTL = 10   -- bag removals kept for the fallback
 
 local module
 local hooked = false
 local lastUse   -- { key, time }
 local casting   -- input key of the running cast
-local op        -- { input, time, outputs, byKey, removed }
+local castAt    -- GetTime() of the running cast's start
+local op        -- { input, time, since, outputs, byKey }
+local removed = {}   -- recent bag removals { key, n, at }
 
 local function IsSecret(v) return issecretvalue ~= nil and issecretvalue(v) == true end
 
@@ -36,13 +41,34 @@ local function OnUseItem(bag, slot)
     lastUse = { key = ns.API.ItemKey.FromLink(link), time = GetTime() }
 end
 
---- The item that left the bags: exactly one unit of exactly one item that is no yield.
+local function BagIDs()
+    local e = Enum and Enum.BagIndex
+    if e and e.Backpack then return { e.Backpack, e.Bag_1, e.Bag_2, e.Bag_3, e.Bag_4 } end
+    return { 0, 1, 2, 3, 4 }
+end
+
+--- The one locked bag item (the target of a starting cast), else nil.
+local function LockedItem()
+    local found
+    for _, bag in ipairs(BagIDs()) do
+        for slot = 1, C_Container.GetContainerNumSlots(bag) or 0 do
+            local info = C_Container.GetContainerItemInfo(bag, slot)
+            if info and info.isLocked and info.hyperlink and not IsSecret(info.hyperlink) then
+                if found then return nil end
+                found = ns.API.ItemKey.FromLink(info.hyperlink)
+            end
+        end
+    end
+    return found
+end
+
+--- The item that left the bags since the cast: exactly one unit of exactly one item that is no yield.
 local function RemovedInput(o)
     local input
-    for key, n in pairs(o.removed) do
-        if not o.byKey[key] then
-            if input or n ~= 1 then return nil end
-            input = key
+    for _, r in ipairs(removed) do
+        if r.at >= o.since and not o.byKey[r.key] then
+            if input or r.n ~= 1 then return nil end
+            input = r.key
         end
     end
     return input
@@ -60,6 +86,10 @@ function Disenchant.Flush()
     op = nil
     if not o or #o.outputs == 0 then return nil end
     local input = o.input or RemovedInput(o)
+    -- the item's own removal must not confuse the next cast
+    for i, r in ipairs(removed) do
+        if r.key == input then table.remove(removed, i); break end
+    end
     local lines, cost, saved, incomplete = {}, 0, 0, false
     if input then
         lines, cost, saved, incomplete = ns.Reagents.Cost({ [input] = 1 }, {}, { time = o.time })
@@ -81,14 +111,16 @@ end
 
 local function OnCastStart(_, unit, _, spellID)
     if unit ~= "player" or IsSecret(spellID) or spellID ~= SPELL then return end
-    casting = lastUse and GetTime() - lastUse.time <= USE_WINDOW and lastUse.key or nil
+    castAt = GetTime()
+    casting = LockedItem() or (lastUse and castAt - lastUse.time <= USE_WINDOW and lastUse.key) or nil
 end
 
 local function OnSpellSucceeded(_, unit, _, spellID)
     if unit ~= "player" or IsSecret(spellID) or spellID ~= SPELL then return end
     if op then Disenchant.Flush() end
-    local this = { input = casting, time = time(), outputs = {}, byKey = {}, removed = {} }
-    op, casting, lastUse = this, nil, nil
+    local since = (castAt and GetTime() - castAt <= 10) and castAt - 0.5 or GetTime() - 3
+    local this = { input = casting, time = time(), since = since, outputs = {}, byKey = {} }
+    op, casting, castAt, lastUse = this, nil, nil, nil
     module:After(LOOT_WINDOW, function()
         if op == this then Disenchant.Flush() end
     end)
@@ -106,9 +138,12 @@ local function OnLoot(_, p)
 end
 
 local function OnItems(_, p)
-    if not op or op.input then return end
+    local now = GetTime()
+    for i = #removed, 1, -1 do
+        if now - removed[i].at > REMOVED_TTL then table.remove(removed, i) end
+    end
     for _, c in ipairs(p.changes or {}) do
-        if c.delta < 0 then op.removed[c.itemKey] = (op.removed[c.itemKey] or 0) - c.delta end
+        if c.delta < 0 then removed[#removed + 1] = { key = c.itemKey, n = -c.delta, at = now } end
     end
 end
 
@@ -125,5 +160,6 @@ function Disenchant.Enable(m)
 end
 
 function Disenchant.Disable()
-    module, lastUse, casting, op = nil, nil, nil, nil
+    module, lastUse, casting, castAt, op = nil, nil, nil, nil, nil
+    removed = {}
 end

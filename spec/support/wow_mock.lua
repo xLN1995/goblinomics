@@ -263,7 +263,8 @@ _G.C_Container = {
         local b = mock.bags[bag]
         local s = b and b[slot]
         if not s then return nil end
-        return { itemID = s.itemID, hyperlink = s.hyperlink, stackCount = s.stackCount, isBound = s.isBound or false }
+        return { itemID = s.itemID, hyperlink = s.hyperlink, stackCount = s.stackCount, isBound = s.isBound or false,
+            isLocked = s.isLocked or false }
     end,
 }
 _G.C_Item = {

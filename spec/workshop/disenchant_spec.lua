@@ -23,19 +23,20 @@ describe("Workshop: disenchanting", function()
 
     local function disenchant(yield, opts)
         opts = opts or {}
-        if not opts.macro then C_Container.UseContainerItem(0, 1) end
+        if opts.click then C_Container.UseContainerItem(0, 1) end
+        WoWMock.bags[0][1].isLocked = opts.locked
         WoWMock.fire("UNIT_SPELLCAST_START", "player", "Cast-1", DE)
         WoWMock.advance(1.5)
+        if opts.removedEarly then ns.Bus.Emit("ITEMS_DELTA", { changes = opts.removedEarly }) end
         WoWMock.fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-1", DE)
-        if opts.removed then
-            ns.Bus.Emit("ITEMS_DELTA", { changes = opts.removed })
-        end
+        WoWMock.bags[0][1].isLocked = nil
+        if opts.removed then ns.Bus.Emit("ITEMS_DELTA", { changes = opts.removed }) end
         for _, y in ipairs(yield) do loot(y[1], y[2]) end
         WoWMock.advance(3.1)
     end
 
     it("records the disenchanted item, its cost and the yield as salvage", function()
-        disenchant({ { 950, 3 }, { 951, 1 } })
+        disenchant({ { 950, 3 }, { 951, 1 } }, { locked = true })
         local r = GoblinomicsWorkshopDB.crafts[1]
         assert.equals("salvage", r.kind)
         assert.equals("disenchant", r.method)
@@ -51,7 +52,7 @@ describe("Workshop: disenchanting", function()
     end)
 
     it("counts later sales of the dust for the disenchanted item", function()
-        disenchant({ { 950, 3 } })
+        disenchant({ { 950, 3 } }, { locked = true })
         wns.Lots.Sell("i:950", 3, 1800)
         local row = wns.Salvage.Rows({})[1]
         assert.equals(1800, row.revenue)
@@ -59,14 +60,27 @@ describe("Workshop: disenchanting", function()
         assert.equals(300, wns.Stats.Breakdown({}).salvage)
     end)
 
-    it("takes the item that left the bags when the cast came from a macro", function()
-        disenchant({ { 950, 2 } }, { macro = true, removed = {
-            { itemKey = "i:222", delta = -1 }, { itemKey = "i:950", delta = -1 } } })
+    it("takes the bag item used right before the cast when nothing is locked", function()
+        disenchant({ { 950, 2 } }, { click = true })
         assert.equals("i:222", GoblinomicsWorkshopDB.crafts[1].input)
     end)
 
+    it("takes the item that left the bags, also before the cast's success event", function()
+        disenchant({ { 950, 2 } }, { removed = {
+            { itemKey = "i:222", delta = -1 }, { itemKey = "i:950", delta = -1 } } })
+        assert.equals("i:222", GoblinomicsWorkshopDB.crafts[1].input)
+        disenchant({ { 950, 1 } }, { removedEarly = { { itemKey = "i:222", delta = -1 } } })
+        assert.equals("i:222", GoblinomicsWorkshopDB.crafts[2].input)
+    end)
+
+    it("does not guess when several items are locked", function()
+        WoWMock.bags[0][2] = { itemID = 223, hyperlink = S.link(223), stackCount = 1, isLocked = true }
+        disenchant({ { 950, 1 } }, { locked = true })
+        assert.is_nil(GoblinomicsWorkshopDB.crafts[1].input)
+    end)
+
     it("keeps the yield without a known item, and ignores other loot and other spells", function()
-        disenchant({ { 950, 1 } }, { macro = true })
+        disenchant({ { 950, 1 } })
         assert.is_nil(GoblinomicsWorkshopDB.crafts[1].input)
         assert.is_true(GoblinomicsWorkshopDB.crafts[1].incomplete)
         WoWMock.fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-2", 12345)
@@ -78,12 +92,11 @@ describe("Workshop: disenchanting", function()
     end)
 
     it("closes the previous cast when the next one succeeds", function()
-        C_Container.UseContainerItem(0, 1)
         WoWMock.fire("UNIT_SPELLCAST_START", "player", "Cast-1", DE)
         WoWMock.fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-1", DE)
         loot(950, 2)
         WoWMock.advance(1)
-        disenchant({ { 951, 1 } })
+        disenchant({ { 951, 1 } }, { locked = true })
         assert.equals(2, #GoblinomicsWorkshopDB.crafts)
         assert.same({ { "i:950", 2 } }, GoblinomicsWorkshopDB.crafts[1].outputs)
         assert.same({ { "i:951", 1 } }, GoblinomicsWorkshopDB.crafts[2].outputs)

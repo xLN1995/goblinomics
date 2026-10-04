@@ -39,7 +39,7 @@ local function RecomputeCraft(r)
     if r.costSource ~= "craftsim" then
         r.cost = cost
         r.saved = saved
-        r.incomplete = incomplete or nil
+        r.incomplete = (incomplete or (r.method == "disenchant" and not r.input)) or nil
     end
 end
 
