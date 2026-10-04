@@ -12,7 +12,7 @@ local _, ns = ...
 local Recompute = {}
 ns.Recompute = Recompute
 
-local VERSION = 2   -- 2: salvage yields used in crafts (transfers)
+local VERSION = 3   -- 2: salvage yields used in crafts (transfers); 3: sales repaired by the Ledger (schema 3)
 local WINDOW_DAYS = 90
 local ORDER = { purchase = 1, craft = 2, sale = 3 }
 

@@ -53,7 +53,10 @@ local function MailDecision(index, sender, subject)
         if AuctionLog() then
             AuctionLog().Sale(key, itemName, count or 1, bid or 0, (bid or 0) - (consignment or 0))
         end
-        return { category = "AH", sub = "sale", itemKey = key, quantity = count, note = player }
+        -- without a key the name stays in the note, else only the buyer would be left
+        local note = player
+        if not key and type(itemName) == "string" then note = player and (itemName .. " (" .. player .. ")") or itemName end
+        return { category = "AH", sub = "sale", itemKey = key, quantity = count, note = note }
     end
     outbidPattern = outbidPattern or (AUCTION_OUTBID_MAIL_SUBJECT and API.ChatPattern.Build(AUCTION_OUTBID_MAIL_SUBJECT))
     if outbidPattern and type(subject) == "string" and subject:match(outbidPattern) then
@@ -137,6 +140,8 @@ local function OnPostItem(location, duration, quantity, _, buyout)
     if not active then return end
     local deposit = C_AuctionHouse.CalculateItemDeposit(location, duration, quantity) or 0
     local key, link = KeyFromLocation(location)
+    local itemID = not key and C_Item.GetItemID and C_Item.GetItemID(location)
+    key = key or (itemID and ("i:" .. itemID))
     if deposit > 0 then
         Classifier.Expect("ahDeposit", -deposit, { category = "AH", sub = "deposit", itemKey = key, quantity = quantity })
     end

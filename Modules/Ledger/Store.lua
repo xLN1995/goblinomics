@@ -83,7 +83,8 @@ function Store.Add(entry)
     local tx
     if last and not entry.itemKey and not last[KEY] and not entry.source and not last[SRC]
         and entry.sub ~= "unknown" and last[CHAR] == ci and last[CAT] == entry.category
-        and last[SUB] == entry.sub and last[TAG] == entry.tag and t - last[T] <= Store.MERGE_WINDOW
+        and last[SUB] == entry.sub and last[TAG] == entry.tag and last[NOTE] == entry.note
+        and t - last[T] <= Store.MERGE_WINDOW
         and (last[AMT] >= 0) == (entry.amount >= 0) then
         last[AMT] = last[AMT] + entry.amount
         last[COUNT] = (last[COUNT] or 1) + 1

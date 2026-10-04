@@ -9,13 +9,17 @@ if GOBLINOMICS_CLIENT_BLOCKED then return end
 -- price minus the 5 % cut plus the deposit returned with the sale (deposit per
 -- unit from the posting log). A small rest (rounding) is spread over the sales,
 -- a larger one stays as Mail.
+-- Schema 3: auction sales of items the addon had not seen posted were booked
+-- without an item key and showed the buyer only. The logged sale at that moment
+-- still has the item name; it resolves the key (posting log, else the client's
+-- item cache), or at least goes into the note.
 local _, ns = ...
 
 local Repair = {}
 ns.Repair = Repair
 
 local T, CHAR, CAT, SUB, AMT, KEY, QTY, NOTE, COUNT = 1, 2, 3, 4, 5, 6, 7, 9, 10
-local E_T, E_KIND, E_KEY, E_QTY, E_AMT = 1, 2, 3, 4, 5
+local E_T, E_KIND, E_KEY, E_QTY, E_AMT, E_NAME = 1, 2, 3, 4, 5, 7
 local SPAN = 65          -- merge window (60 s) plus slack
 local ABSORB = 0.05      -- rest up to 5 % of the sales counts as deposits/rounding
 
@@ -91,4 +95,57 @@ function Repair.MergedMail(root)
         end
     end
     return split
+end
+
+local function KeyOfName(root, name)
+    local key = root.ah.names and root.ah.names[name]
+    if key then return key end
+    local link = C_Item and C_Item.GetItemInfo and select(2, C_Item.GetItemInfo(name))
+    return link and ns.API.ItemKey.FromLink(link) or nil
+end
+
+--- Returns the number of repaired bookings (key or name added).
+function Repair.SaleKeys(root)
+    local events = root.ah and root.ah.events or {}
+    local sales = {}
+    for _, e in ipairs(events) do
+        if e[E_KIND] == "sale" and not e[E_KEY] and e[E_NAME] then sales[#sales + 1] = { e = e } end
+    end
+    if #sales == 0 then return 0 end
+    local repaired = 0
+    for _, list in pairs(root.tx or {}) do
+        for _, tx in ipairs(list) do
+            if tx[CAT] == "AH" and tx[SUB] == "sale" and not tx[KEY] then
+                local count = tx[COUNT] or 1
+                local found = {}
+                for _, s in ipairs(sales) do
+                    local dt = tx[T] - s.e[E_T]
+                    if #found < count and not s.used and dt >= -3 and dt <= (count > 1 and SPAN or 3)
+                        and (count > 1 or (s.e[E_QTY] or 1) == (tx[QTY] or 1)) then
+                        found[#found + 1] = s
+                    end
+                end
+                local name = found[1] and found[1].e[E_NAME]
+                for _, s in ipairs(found) do
+                    if s.e[E_NAME] ~= name then name = nil end
+                end
+                if name and #found == count then
+                    local key = KeyOfName(root, name)
+                    local qty = 0
+                    for _, s in ipairs(found) do
+                        s.used = true
+                        s.e[E_KEY] = key
+                        qty = qty + (s.e[E_QTY] or 1)
+                    end
+                    if key then
+                        tx[KEY], tx[QTY] = key, qty
+                    else
+                        tx[NOTE] = tx[NOTE] and (name .. " (" .. tx[NOTE] .. ")") or name
+                    end
+                    repaired = repaired + 1
+                end
+            end
+        end
+    end
+    return repaired
 end
