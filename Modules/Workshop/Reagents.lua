@@ -89,16 +89,27 @@ function Reagents.Consumed(call, crafts, order)
     end
     for itemID in pairs(customerItems) do customerSlotItems[itemID] = true end
 
-    local covered = {}
+    -- Coverage is tracked by item, not by dataSlotIndex: dataSlotIndex is only
+    -- unique within a slot data type, so a basic reagent without quality tiers
+    -- and a quality reagent can share the same index (e.g. Rite of the Hash'ey,
+    -- recipe 1291694: Cursebound Globe and Eversinging Dust are both 1, Petrified
+    -- Root and Radiant Shard both 2), which dropped the basic reagents.
+    local passed = {}
     for _, entry in ipairs(call.reagents or {}) do
         local itemID, qty, slot = Reagents.Entry(entry)
-        if slot then covered[slot] = true end
+        if itemID then passed[itemID] = true end
         local customer = (slot and customerData[slot]) or (itemID and customerSlotItems[itemID])
         if not customer then Add(consumed, itemID, qty * crafts) end
     end
+    local function Covered(slot)
+        for _, r in ipairs(slot.reagents or {}) do
+            if r.itemID and passed[r.itemID] then return true end
+        end
+        return false
+    end
     for _, slot in ipairs(slots) do
         local first = slot.reagents and slot.reagents[1]
-        if slot.reagentType == BASIC and first and first.itemID and not covered[slot.dataSlotIndex]
+        if slot.reagentType == BASIC and first and first.itemID and not Covered(slot)
             and not (slot.dataSlotIndex and customerData[slot.dataSlotIndex]) then
             Add(consumed, first.itemID, (slot.quantityRequired or 0) * crafts)
         end

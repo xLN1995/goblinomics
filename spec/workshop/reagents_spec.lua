@@ -44,6 +44,25 @@ describe("Workshop: recipes and reagents", function()
         assert.same({ ["i:11"] = 12, ["i:21"] = 4, ["i:22"] = 4 }, consumed)   -- optional slot 3 not chosen
     end)
 
+    it("keeps basic slots whose dataSlotIndex repeats a quality slot's index", function()
+        -- in game (recipe 1291694) dataSlotIndex restarts per slot data type: the
+        -- basic reagents without quality tiers share indexes 1 and 2 with quality reagents
+        WoWMock.recipes[400] = { name = "Enchant", profession = "Enchanting",
+            schematic = { reagentSlotSchematics = {
+                { reagentType = 1, dataSlotIndex = 1, quantityRequired = 5, reagents = { { itemID = 41 } } },
+                { reagentType = 1, dataSlotIndex = 2, quantityRequired = 4, reagents = { { itemID = 42 } } },
+                { reagentType = 1, dataSlotIndex = 1, quantityRequired = 20,
+                    reagents = { { itemID = 43 }, { itemID = 44 } } },
+                { reagentType = 1, dataSlotIndex = 2, quantityRequired = 10,
+                    reagents = { { itemID = 45 }, { itemID = 46 } } },
+            } } }
+        local consumed = wns.Reagents.Consumed({ recipeID = 400, reagents = {
+            { reagent = { itemID = 43 }, quantity = 20, dataSlotIndex = 1 },
+            { reagent = { itemID = 46 }, quantity = 10, dataSlotIndex = 2 },
+        } }, 1)
+        assert.same({ ["i:41"] = 5, ["i:42"] = 4, ["i:43"] = 20, ["i:46"] = 10 }, consumed)
+    end)
+
     it("uses the salvage quantity and removes customer reagents of an order", function()
         assert.same({ ["i:900"] = 15 }, wns.Reagents.Consumed({ recipeID = 300, salvageItemID = 900 }, 3))
         local order = { reagents = {
