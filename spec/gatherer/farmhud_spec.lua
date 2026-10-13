@@ -293,6 +293,25 @@ describe("Gatherer: farm HUD", function()
             assert.equals("gathered", FarmHUD.State().nodes["0.2000:0.1000"])
         end)
 
+        it("keeps the side panel where it was dragged, until a side is chosen", function()
+            Session.Start(farm.id)
+            FarmHUD.Toggle()
+            local panel = hud().panel
+            panel:GetScript("OnDragStart")(panel)
+            panel:ClearAllPoints()
+            panel:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 300, -120)
+            panel:GetScript("OnDragStop")(panel)
+            FarmHUD.Toggle()
+            FarmHUD.Toggle()
+            assert.same({ "TOPLEFT", UIParent, "TOPLEFT", 300, -120 }, { panel:GetPoint(1) })
+            pns.Gatherer.db.char.farmHudPos = nil
+            pns.Gatherer.db.settings.farmHudSide = "right"
+            FarmHUD.Refresh()
+            FarmHUD.Toggle()
+            FarmHUD.Toggle()
+            assert.same({ "RIGHT", UIParent, "RIGHT", -24, 0 }, { panel:GetPoint(1) })
+        end)
+
         it("switches the HUD with /gob farm hud and skips with /gob farm skip", function()
             Session.Start(farm.id)
             pns.Commands.Run("hud")

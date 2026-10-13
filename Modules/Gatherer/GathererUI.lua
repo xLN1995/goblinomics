@@ -532,7 +532,7 @@ local function BuildSettings(parent, y)
             settings.autoPauseMinutes = n
             ns.Session.ScheduleAutoPause()
         end })
-    form:Toggle({ label = L["Lock the HUD"], description = L["The session HUD can no longer be moved."],
+    form:Toggle({ label = L["Lock the HUD"], description = L["The session HUD and the farm HUD's side panel can no longer be moved."],
         get = function() return settings.hudLocked end,
         set = function(on) settings.hudLocked = on end })
     form:Toggle({ label = L["Show the farm HUD by itself"],
@@ -554,6 +554,7 @@ local function BuildSettings(parent, y)
         get = function() return settings.farmHudSide end,
         set = function(v)
             settings.farmHudSide = v
+            ns.Gatherer.db.char.farmHudPos = nil   -- choosing a side drops a dragged place
             ns.FarmHUD.Refresh()
         end })
 

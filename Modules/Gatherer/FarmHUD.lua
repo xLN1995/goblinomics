@@ -6,7 +6,7 @@ if GOBLINOMICS_CLIENT_BLOCKED then return end
 -- tracking blips show the nodes that stand right now. On top the farm's known nodes
 -- as dots (yellow, grey once mined or found empty on this lap), the next three stops
 -- (clusters larger) and lines along them, thinner further ahead. A side
--- panel (left or right, setting) shows farm, time, gold, GPH, nodes, the three most
+-- panel (left or right, setting; movable) shows farm, time, gold, GPH, nodes, the three most
 -- valuable items and the next three stops with distance and time to reach them.
 -- Shown by the hotkey, /gob farm hud or automatically (setting, off by default);
 -- hidden in combat, in instances and outside the farm's zone. While it is shown
@@ -104,6 +104,18 @@ local function BuildPanel(f)
     local p = CreateFrame("Frame", nil, f)
     p:SetWidth(PANEL_W)
     p:EnableMouse(true)
+    -- movable like the small session window (and locked with it); the place is kept per character
+    p:SetMovable(true)
+    p:SetClampedToScreen(true)
+    p:RegisterForDrag("LeftButton")
+    p:SetScript("OnDragStart", function(self)
+        if not Settings().hudLocked then self:StartMoving() end
+    end)
+    p:SetScript("OnDragStop", function(self)
+        self:StopMovingOrSizing()
+        local point, _, relPoint, x, y = self:GetPoint(1)
+        module.db.char.farmHudPos = { point = point, relPoint = relPoint, x = x, y = y }
+    end)
     Theme.Backdrop(p, C.overlay, C.border)
     local y = -S.SM
     local function Line(size, color, right)
@@ -201,9 +213,15 @@ local function Build()
     return f
 end
 
+--- The side panel where the player dragged it, else at the chosen side.
 local function PlacePanel()
-    local side = Settings().farmHudSide == "right" and "RIGHT" or "LEFT"
+    local pos = module.db.char.farmHudPos
     frame.panel:ClearAllPoints()
+    if pos and pos.point then
+        frame.panel:SetPoint(pos.point, UIParent, pos.relPoint or pos.point, pos.x or 0, pos.y or 0)
+        return
+    end
+    local side = Settings().farmHudSide == "right" and "RIGHT" or "LEFT"
     frame.panel:SetPoint(side, UIParent, side, side == "LEFT" and 24 or -24, 0)
 end
 
