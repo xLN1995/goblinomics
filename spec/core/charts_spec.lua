@@ -62,6 +62,8 @@ describe("Core: time charts", function()
 
     it("fills the area with stripes that follow the line", function()
         local stripes = ns.Charts.AreaStripes({ { x = 0, y = 0 }, { x = 10, y = 10 }, { x = 20, y = 0 } }, 5)
+        -- the sheared tops join without steps
+        for i = 1, #stripes - 1 do assert.is_near(stripes[i].right, stripes[i + 1].left, 1e-9) end
         assert.equals(4, #stripes)
         assert.equals(2.5, stripes[1].height)
         assert.equals(7.5, stripes[2].height)

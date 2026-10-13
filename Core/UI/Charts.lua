@@ -156,8 +156,9 @@ function Charts.Layout(data, series, width, height)
     return layout
 end
 
---- Vertical stripes under a line: { { x, width, height } } every `stripe` px
--- between the first and the last point (height interpolated at the stripe centre).
+--- Vertical stripes under a line: { { x, width, height, left, right } } every `stripe`
+-- px between the first and the last point: height at the stripe centre, left and
+-- right at its edges (the drawing shears the top edge from left to right).
 function Charts.AreaStripes(points, stripe)
     local list = {}
     if #points < 2 then return list end
@@ -170,7 +171,10 @@ function Charts.AreaStripes(points, stripe)
         while seg < #points - 1 and points[seg + 1].x < mid do seg = seg + 1 end
         local a, b = points[seg], points[seg + 1]
         local t = b.x > a.x and (mid - a.x) / (b.x - a.x) or 0
-        list[#list + 1] = { x = x, width = w, height = math.max(0, a.y + (b.y - a.y) * t) }
+        local tEnd = b.x > a.x and math.min(1, (x + w - a.x) / (b.x - a.x)) or 0
+        local tStart = b.x > a.x and math.max(0, (x - a.x) / (b.x - a.x)) or 0
+        list[#list + 1] = { x = x, width = w, height = math.max(0, a.y + (b.y - a.y) * t),
+            left = math.max(0, a.y + (b.y - a.y) * tStart), right = math.max(0, a.y + (b.y - a.y) * tEnd) }
         x = x + w
     end
     return list
@@ -221,19 +225,19 @@ function Charts.TimeChart(parent, opts)
     end)
     local xLabels = Pool(function() return Theme.Text(f, 9, C.textDim) end)
     local stripes = Pool(function()
-        local t = plot:CreateTexture(nil, "BORDER")
+        local t = Theme.Unsnap(plot:CreateTexture(nil, "BORDER"))
         t:SetTexture(Theme.WHITE)
         return t
     end)
     local bars = Pool(function() return plot:CreateTexture(nil, "ARTWORK") end)
     local segments = Pool(function()
-        local l = plot:CreateLine(nil, "OVERLAY")
-        l:SetThickness(2)
+        local l = Theme.SmoothLine(plot:CreateLine(nil, "OVERLAY"))
+        l:SetThickness(3)
         return l
     end)
     local points = Pool(function()
-        local t = plot:CreateTexture(nil, "OVERLAY")
-        t:SetSize(4, 4)
+        local t = Theme.SmoothDot(plot:CreateTexture(nil, "OVERLAY"))
+        t:SetSize(7, 7)
         return t
     end)
     local empty = Widgets.EmptyState(plot, opts.empty)
@@ -300,7 +304,8 @@ function Charts.TimeChart(parent, opts)
                         t:SetGradient("VERTICAL", CreateColor(c[1], c[2], c[3], 0.02), CreateColor(c[1], c[2], c[3], 0.30))
                         t:ClearAllPoints()
                         t:SetPoint("BOTTOMLEFT", plot, "BOTTOMLEFT", st.x, 0)
-                        t:SetSize(st.width, math.max(1, st.height))
+                        t:SetSize(st.width, math.max(1, st.left))
+                        t:SetVertexOffset(3, 0, st.right - st.left)   -- upper right follows the line: no steps
                     end
                 end
             end
@@ -319,14 +324,14 @@ function Charts.TimeChart(parent, opts)
                     local c = colors[sr.key]
                     for i = 2, #list do
                         local l = segments:Next()
-                        l:SetColorTexture(unpack(c))
+                        Theme.Tint(l, c)
                         l:SetStartPoint("BOTTOMLEFT", plot, list[i - 1].x, list[i - 1].y)
                         l:SetEndPoint("BOTTOMLEFT", plot, list[i].x, list[i].y)
                     end
                     if sr.kind == "line" or #list == 1 then
                         for _, p in ipairs(list) do
                             local t = points:Next()
-                            t:SetColorTexture(unpack(c))
+                            Theme.Tint(t, c)
                             t:ClearAllPoints()
                             t:SetPoint("CENTER", plot, "BOTTOMLEFT", p.x, p.y)
                         end

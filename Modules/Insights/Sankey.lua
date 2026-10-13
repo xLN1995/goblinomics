@@ -5,7 +5,8 @@ if GOBLINOMICS_CLIENT_BLOCKED then return end
 -- columns so every band is exactly proportional to its amount. More than
 -- MAX_BLOCKS entries per column become "Others (n)". Bands leave and enter a
 -- block stacked in the order of the other side (no crossings at the block) and
--- are drawn as smooth S-curves from vertical stripes. Hovering a block
+-- are drawn as smooth S-curves from narrow stripes, each sheared (vertex offsets)
+-- to follow the curve, so the edges run straight without steps. Hovering a block
 -- highlights its bands and lists its flows.
 local _, ns = ...
 
@@ -164,18 +165,21 @@ function Sankey.Layout(flow, width, height)
     return layout
 end
 
---- Stripes of one band: { { x, width, y } } (y = top edge, from the top).
+--- Stripes of one band: { { x, width, y, yEnd } } (top edge at the stripe's left and
+-- right end, from the top); the curve is smoothstep from y0 to y1.
 function Sankey.Stripes(band)
     local list = {}
     local dx = band.x1 - band.x0
     if dx <= 0 then return list end
+    local function Top(x)
+        local t = (x - band.x0) / dx
+        return band.y0 + (band.y1 - band.y0) * t * t * (3 - 2 * t)
+    end
     local step = math.max(STRIPE, math.ceil(dx / MAX_STRIPES))
     local x = band.x0
     while x < band.x1 do
         local w = math.min(step, band.x1 - x)
-        local t = (x + w / 2 - band.x0) / dx
-        local s = t * t * (3 - 2 * t)
-        list[#list + 1] = { x = x, width = w, y = band.y0 + (band.y1 - band.y0) * s }
+        list[#list + 1] = { x = x, width = w, y = Top(x), yEnd = Top(x + w) }
         x = x + w
     end
     return list
@@ -198,7 +202,7 @@ function Sankey.Create(parent, height)
         usedStripes = usedStripes + 1
         local t = stripes[usedStripes]
         if not t then
-            t = f:CreateTexture(nil, "BORDER")
+            t = Theme.Unsnap(f:CreateTexture(nil, "BORDER"))
             stripes[usedStripes] = t
         end
         t:Show()
@@ -267,6 +271,10 @@ function Sankey.Create(parent, height)
                 t:ClearAllPoints()
                 t:SetPoint("TOPLEFT", self, "TOPLEFT", s.x, -s.y)
                 t:SetSize(s.width, math.max(1, band.thickness))
+                -- shear the right edge down to the curve: no steps between stripes
+                local drop = -(s.yEnd - s.y)
+                t:SetVertexOffset(3, 0, drop)   -- upper right
+                t:SetVertexOffset(4, 0, drop)   -- lower right
                 list[#list + 1] = t
             end
             bandStripes[band] = list

@@ -14,6 +14,10 @@ Theme.MEDIA = "Interface\\AddOns\\" .. ADDON_NAME .. "\\Media\\"
 Theme.WHITE = "Interface\\Buttons\\WHITE8X8"
 Theme.ICON = Theme.MEDIA .. "goblinomics_icon_64"    -- coin logo, small (64 px)
 Theme.LOGO = Theme.MEDIA .. "goblinomics_logo_128"   -- coin logo, detailed (128 px)
+-- white shapes with smooth alpha edges (tools/make_hud_media.py), tinted where used
+Theme.DOT = Theme.MEDIA .. "hud_dot"       -- filled circle, 64 px (the circle fills 7/8 of it)
+Theme.RING = Theme.MEDIA .. "hud_ring"     -- thin circle outline, 512 px
+Theme.STROKE = Theme.MEDIA .. "hud_line"   -- line profile fading out at both edges
 
 Theme.colors = {
     bg = { 0.05, 0.07, 0.09, 0.97 },
@@ -167,6 +171,36 @@ function Theme.Backdrop(frame, bg, border)
     local fill = Theme.Fill(frame, bg or Theme.colors.panel)
     local edge = Theme.Border(frame, border)
     return fill, edge
+end
+
+-- Smooth shapes ----------------------------------------------------------------------------------
+-- Diagonal lines and round dots look stepped when drawn as solid colour and snapped
+-- to the pixel grid. These give them soft edges and sub-pixel placement; frames,
+-- fills and borders stay pixel-exact on purpose.
+
+--- Place a texture or line between pixels instead of snapping it to them.
+function Theme.Unsnap(region)
+    if region.SetSnapToPixelGrid then region:SetSnapToPixelGrid(false) end
+    if region.SetTexelSnappingBias then region:SetTexelSnappingBias(0) end
+    return region
+end
+
+--- A line with soft edges; colour it with Theme.Tint. The stroke fades out at its
+-- edges, so it needs about 1.5x the thickness of a solid line.
+function Theme.SmoothLine(line)
+    line:SetTexture(Theme.STROKE)
+    return Theme.Unsnap(line)
+end
+
+--- A round dot with a soft edge; colour it with Theme.Tint.
+function Theme.SmoothDot(texture)
+    texture:SetTexture(Theme.DOT)
+    return Theme.Unsnap(texture)
+end
+
+--- Colour a smooth shape: c = { r, g, b, a }, alpha overrides c's alpha.
+function Theme.Tint(region, c, alpha)
+    region:SetVertexColor(c[1], c[2], c[3], alpha or c[4] or 1)
 end
 
 ns.API.Theme = Theme
