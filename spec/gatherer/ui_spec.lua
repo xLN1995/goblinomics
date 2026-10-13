@@ -47,6 +47,32 @@ describe("Gatherer UI", function()
         pns.GathererUI.Select(farm.id)
     end)
 
+    it("puts the actions at their part: start and pause in the session panel, farm actions by the farm", function()
+        local farm = pns.Farms.Create({ name = "Herbs" })
+        buildTab()
+        local tab = pns.GathererUI.tab
+        local p = tab.session
+        assert.equals("Start session", p.main.label:GetText())
+        assert.equals("Herbs", p.target:GetText())
+        assert.is_false(p.pause:IsShown())
+        p.main:GetScript("OnClick")(p.main, "LeftButton")
+        assert.equals(farm.id, pns.Session.Active().farmId)
+        assert.equals("Stop session", p.main.label:GetText())
+        assert.is_true(p.pause:IsShown())
+        p.pause:GetScript("OnClick")(p.pause, "LeftButton")
+        assert.is_false(pns.Session.IsRunning())
+        assert.equals("Resume", p.pause.label:GetText())
+        p.main:GetScript("OnClick")(p.main, "LeftButton")                -- stop
+        assert.is_nil(pns.Session.Active())
+        -- without a farm: edit, export and delete are off; the main button starts ad hoc
+        pns.Farms.Delete(farm.id)
+        pns.GathererUI.Select(nil)
+        assert.is_true(tab.edit.disabled and tab.export.disabled and tab.delete.disabled)
+        assert.equals("Ad-hoc session", p.target:GetText())
+        assert.is_table(tab.new)   -- above the list, always there
+        assert.is_table(tab.import)
+    end)
+
     it("saves a new farm from the editor", function()
         pns.FarmEditor.Open(nil)
         local form = pns.FarmEditor.Form()

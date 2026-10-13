@@ -1,9 +1,12 @@
 if GOBLINOMICS_CLIENT_BLOCKED then return end
 -- Modules/Gatherer/GathererUI.lua
 -- Gatherer tab (the detailed view): the running session with the full
--- breakdown, the farm list, and for the selected farm its statistics, for raid
--- and dungeon farms the lockouts of every character per difficulty (who can
--- still run it), and the session history (click: summary, right-click: delete).
+-- breakdown and, on its right, the main action (start or stop a session for the
+-- selected farm, pause); the farm list with "New farm" and "Import" above it;
+-- for the selected farm "Edit", "Export" and "Delete" under its title, its
+-- statistics, for raid and dungeon farms the lockouts of every character per
+-- difficulty (who can still run it), and the session history (click: summary,
+-- right-click: delete). Every action sits at the part it works on.
 -- Also the "Gatherer" settings section.
 local _, ns = ...
 local CODE = setmetatable({}, { __index = function(_, k) return ns.API.Theme.CODE[k] end })
@@ -14,12 +17,14 @@ ns.GathererUI = UI
 local OWNER = "Goblinomics_Gatherer.Tab"
 local SESSION_H = 108
 local LIST_W = 250
+local ACTION_W = 170   -- action column on the right of the session panel
 local LOCK_ROWS, LOCK_ROW_H, LOCK_NAME_W, LOCK_MAX_COLS = 5, 18, 110, 6
 
 local API, L
 local module
 local tab = {}
 local state = { selected = nil }
+UI.tab = tab   -- for specs
 local ticker
 
 local function Money(copper, opts)
@@ -35,6 +40,8 @@ end
 local function SetEnabled(button, on)
     button:SetEnabled(on)
     button:SetAlpha(on and 1 or 0.4)
+    -- a destructive action keeps its red label
+    if button.danger and on then button.label:SetTextColor(unpack(API.Theme.colors.loss)) end
 end
 
 --- Rows of the farm list: every farm, plus ad-hoc sessions when there are any.
@@ -65,15 +72,15 @@ end
 -- Current session ---------------------------------------------------------------
 local function BuildSessionPanel(page)
     local Theme = API.Theme
-    local C = Theme.colors
+    local C, S = Theme.colors, Theme.space
     local p = CreateFrame("Frame", nil, page)
-    p:SetPoint("TOPLEFT", 0, API.Theme.space.CONTENT_TOP)
+    p:SetPoint("TOPLEFT", 0, 0)
     p:SetPoint("RIGHT", page, "RIGHT", 0, 0)
     p:SetHeight(SESSION_H)
     Theme.Backdrop(p, C.panel, C.border)
     p.title = Theme.Text(p, "caption", C.textDim)
     p.title:SetPoint("TOPLEFT", 12, -10)
-    p.title:SetPoint("RIGHT", -12, 0)
+    p.title:SetPoint("RIGHT", -(ACTION_W + S.PAD), 0)
     p.title:SetWordWrap(false)
     p.cells = {}
     local columns = { 10, 200 }
@@ -92,10 +99,27 @@ local function BuildSessionPanel(page)
     for row = 1, 4 do
         local fs = Theme.Text(p, 11, C.text)
         fs:SetPoint("TOPLEFT", 460, -30 - (row - 1) * 18)
-        fs:SetPoint("RIGHT", -10, 0)
+        fs:SetPoint("RIGHT", -(ACTION_W + S.PAD), 0)
         fs:SetWordWrap(false)
         p.items[row] = fs
     end
+    -- the main action: start or stop, highlighted; under it the farm it starts, or pause
+    local W = API.Widgets
+    p.main = W.Button(p, "", { width = ACTION_W - S.PAD, height = 28, onClick = function()
+        UI.StartOrStop()
+        UI.Refresh()
+    end })
+    p.main:SetPoint("TOPRIGHT", -S.PAD, -S.PAD)
+    p.main:SetSelected(true)
+    p.target = Theme.Text(p, 11, C.textDim)
+    p.target:SetPoint("TOP", p.main, "BOTTOM", 0, -S.SM)
+    p.target:SetWidth(ACTION_W - S.PAD)
+    p.target:SetWordWrap(false)
+    p.pause = W.Button(p, L["Pause"], { width = ACTION_W - S.PAD, onClick = function()
+        if ns.Session.IsRunning() then ns.Session.Pause() else ns.Session.Resume() end
+        UI.Refresh()
+    end })
+    p.pause:SetPoint("TOP", p.main, "BOTTOM", 0, -S.SM)
     return p
 end
 
@@ -103,10 +127,17 @@ local function RefreshSession()
     local p = tab.session
     if not p then return end
     local s = ns.Session.Active()
+    p.main:SetText(s and L["Stop session"] or L["Start session"])
+    -- before a start: which farm it is for; while running: pause or resume
+    local selected = state.selected and state.selected ~= ns.Farms.AD_HOC and ns.Farms.Get(state.selected)
+    p.target:SetShown(s == nil)
+    p.target:SetText(selected and selected.name or L["Ad-hoc session"])
+    p.pause:SetShown(s ~= nil)
+    p.pause:SetText(s and not s.runningSince and L["Resume"] or L["Pause"])
     for _, cell in ipairs(p.cells) do cell.label:SetText(""); cell.value:SetText("") end
     for _, fs in ipairs(p.items) do fs:SetText("") end
     if not s then
-        p.title:SetText(L["No active session. Start one with the button above or /gob farm start [name]."])
+        p.title:SetText(L["No active session. Start one with the button on the right or /gob farm start [name]."])
         return
     end
     local farm = s.farmId and ns.Farms.Get(s.farmId) or nil
@@ -338,7 +369,7 @@ local function RefreshLockouts(farm)
     local lock = tab.lock
     local grid = farm and ns.Lockouts.Grid(farm)
     SetLockoutsShown(grid ~= nil)
-    local histTop = tab.detailTop - 60 - (grid and lock.height or 0)
+    local histTop = tab.detailTop - tab.detailBody - (grid and lock.height or 0)
     tab.histHeader:ClearAllPoints()
     tab.histHeader:SetPoint("TOPLEFT", tab.detailLeft, histTop)
     tab.histHeader:SetPoint("RIGHT", tab.page, "RIGHT", -API.Theme.space.GUTTER, 0)
@@ -379,8 +410,6 @@ function UI.Refresh()
     SetEnabled(tab.edit, isFarm)
     SetEnabled(tab.delete, isFarm)
     SetEnabled(tab.export, isFarm)
-    local active = ns.Session.Active() ~= nil
-    tab.start:SetText(active and L["Stop session"] or L["Start session"])
     RefreshSession()
 end
 
@@ -391,7 +420,9 @@ end
 
 function UI.Selected() return state.selected end
 
-local function StartOrStop()
+--- The session panel's main button: stop the running session (summary), or start one
+-- for the selected farm (ad-hoc when none or the ad-hoc row is selected).
+function UI.StartOrStop()
     if ns.Session.Active() then
         ns.HUD.StopAndSummarize()
     else
@@ -404,34 +435,21 @@ local function BuildTab(page)
     local W = API.Widgets
     local Theme = API.Theme
     local C = Theme.colors
-    local buttons = {
-        { "new", L["New farm"], function() ns.FarmEditor.Open(nil) end },
-        { "edit", L["Edit"], function() ns.FarmEditor.Open(ns.Farms.Get(state.selected)) end },
-        { "delete", L["Delete"], function()
-            local farm = ns.Farms.Get(state.selected)
-            if not farm then return end
-            W.Confirm({
-                title = L["Delete farm"], text = API.Lf("Delete %s and its session history?", farm.name),
-                confirmText = L["Delete"], onConfirm = function() ns.Farms.Delete(farm.id) end,
-            })
-        end },
-        { "start", L["Start session"], StartOrStop },
-        { "export", L["Export"], function() if ns.Strings then ns.Strings.ShowExport(state.selected) end end },
-        { "import", L["Import"], function() if ns.Strings then ns.Strings.ShowImport() end end },
-    }
-    local x = 0
-    for _, b in ipairs(buttons) do
-        local width = b[1] == "start" and 120 or 100
-        local button = W.Button(page, b[2], { width = width, onClick = b[3] })
-        button:SetPoint("TOPLEFT", x, 0)
-        x = x + width + 6
-        tab[b[1]] = button
-    end
+    local S = Theme.space
     tab.session = BuildSessionPanel(page)
 
-    local top = -34 - SESSION_H - 10
+    local top = -SESSION_H - S.GAP
+    local bar = S.CONTROL_H + S.SM   -- a row of buttons
+    -- above the farm list: new farm, import
+    tab.new = W.Button(page, L["+ New farm"], { auto = true, onClick = function() ns.FarmEditor.Open(nil) end })
+    tab.new:SetPoint("TOPLEFT", 0, top)
+    tab.import = W.Button(page, L["Import"], { auto = true, onClick = function()
+        if ns.Strings then ns.Strings.ShowImport() end
+    end })
+    tab.import:SetPoint("LEFT", tab.new, "RIGHT", S.SM, 0)
+    local listTop = top - bar
     local header = CreateFrame("Frame", nil, page)
-    header:SetPoint("TOPLEFT", 0, top)
+    header:SetPoint("TOPLEFT", 0, listTop)
     header:SetSize(LIST_W, 18)
     local hName = Theme.Text(header, 11, C.textDim)
     hName:SetPoint("LEFT", 6, 0)
@@ -443,7 +461,7 @@ local function BuildTab(page)
     hGph:SetPoint("RIGHT", -4, 0)
     hGph:SetText(L["Avg GPH"])
     tab.farms = W.ScrollList(page, { rowHeight = 22, init = InitFarmRow })
-    tab.farms.box:SetPoint("TOPLEFT", 0, top - 20)
+    tab.farms.box:SetPoint("TOPLEFT", 0, listTop - 20)
     tab.farms.box:SetPoint("BOTTOMLEFT", 0, 0)
     tab.farms.box:SetWidth(LIST_W)
 
@@ -452,17 +470,39 @@ local function BuildTab(page)
     tab.detailTitle:SetPoint("TOPLEFT", left, top)
     tab.detailTitle:SetPoint("RIGHT", page, "RIGHT", 0, 0)
     tab.detailTitle:SetWordWrap(false)
+    -- under the title: edit and export; delete set apart on the right, in red
+    local actionsTop = top - 22
+    tab.edit = W.Button(page, L["Edit"], { auto = true, onClick = function()
+        ns.FarmEditor.Open(ns.Farms.Get(state.selected))
+    end })
+    tab.edit:SetPoint("TOPLEFT", left, actionsTop)
+    tab.export = W.Button(page, L["Export"], { auto = true, onClick = function()
+        if ns.Strings then ns.Strings.ShowExport(state.selected) end
+    end })
+    tab.export:SetPoint("LEFT", tab.edit, "RIGHT", S.SM, 0)
+    tab.delete = W.Button(page, L["Delete"], { auto = true, onClick = function()
+        local farm = ns.Farms.Get(state.selected)
+        if not farm then return end
+        W.Confirm({
+            title = L["Delete farm"], text = API.Lf("Delete %s and its session history?", farm.name),
+            confirmText = L["Delete"], onConfirm = function() ns.Farms.Delete(farm.id) end,
+        })
+    end })
+    tab.delete:SetPoint("TOPRIGHT", page, "TOPRIGHT", -S.GUTTER, actionsTop)
+    tab.delete.danger = true
+    local statsTop = actionsTop - bar
     tab.detailStats = Theme.Text(page, 11, C.text)
-    tab.detailStats:SetPoint("TOPLEFT", left, top - 20)
+    tab.detailStats:SetPoint("TOPLEFT", left, statsTop)
     tab.detailStats:SetPoint("RIGHT", page, "RIGHT", 0, 0)
     tab.detailStats:SetWordWrap(false)
     tab.detailExpected = Theme.Text(page, 11, C.textDim)
-    tab.detailExpected:SetPoint("TOPLEFT", left, top - 38)
+    tab.detailExpected:SetPoint("TOPLEFT", left, statsTop - 18)
     tab.detailExpected:SetPoint("RIGHT", page, "RIGHT", 0, 0)
     tab.detailExpected:SetWordWrap(false)
 
-    tab.page, tab.detailLeft, tab.detailTop = page, left, top
-    tab.lock = BuildLockouts(page, left, top - 60)
+    -- the part above lockouts and history: title, buttons, two lines of text
+    tab.page, tab.detailLeft, tab.detailTop, tab.detailBody = page, left, top, top - statsTop + 40
+    tab.lock = BuildLockouts(page, left, statsTop - 40)
     historyColumns = W.Columns({
         { key = "date", label = L["Date"], width = 96 }, { key = "char", label = L["Character"] },
         { key = "duration", label = L["Duration"], width = 62, align = "RIGHT" },
