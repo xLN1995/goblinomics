@@ -789,6 +789,7 @@ L["Put this product on your Market list in the Workshop, or take it off."] = "Di
 L["Speculative from (gold per item)"] = "Spekulativ ab (Gold pro Item)"
 L["Cheaper items are never speculative, so the list stays free of junk."] = "Günstigere Items sind nie spekulativ, so bleibt die Liste frei von Kleinkram."
 L["What's new in Goblinomics"] = "Neu in Goblinomics"
+L["What's new in Goblinomics %s"] = "Neu in Goblinomics %s"
 L["Changelog"] = "Änderungen"
 L["New modules"] = "Neue Module"
 L["Next version"] = "Nächste Version"

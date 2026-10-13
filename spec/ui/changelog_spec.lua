@@ -207,4 +207,11 @@ describe("UI: changelog", function()
             end
         end)
     end)
+
+    it("names the running version in the window title", function()
+        local ns = load_core({ boot = true })
+        assert.equals("What's new in Goblinomics 1.1.0", ns.Changelog.Title("1.1.0"))
+        assert.equals("What's new in Goblinomics 1.1.0", ns.Changelog.Title("v1.1.0"))
+        assert.equals("What's new in Goblinomics", ns.Changelog.Title("dev"))
+    end)
 end)

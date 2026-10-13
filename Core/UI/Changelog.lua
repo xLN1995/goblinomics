@@ -199,9 +199,18 @@ local function Render(content, entries, highlight)
     return y
 end
 
+--- "What's new in Goblinomics 1.1.0" with the running version; dev builds without one.
+function Changelog.Title(version)
+    version = version or Goblinomics.VERSION
+    if type(version) == "string" and version:match("^v?%d") then
+        return ns.Lf("What's new in Goblinomics %s", (version:gsub("^v", "")))
+    end
+    return L["What's new in Goblinomics"]
+end
+
 local function Build()
     local S = Theme.space
-    win = Widgets.Dialog({ name = "GoblinomicsChangelogWindow", title = L["What's new in Goblinomics"],
+    win = Widgets.Dialog({ name = "GoblinomicsChangelogWindow", title = Changelog.Title(),
         width = WIDTH, height = HEIGHT,
         buttons = { { text = L["Close"], primary = true, onClick = function()
             Changelog.MarkSeen()
