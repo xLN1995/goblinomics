@@ -59,6 +59,7 @@ function M.gathermate(zones, names)
     _G.GatherMate2 = {
         db_types = types, gmdbs = gmdbs, nodeIDs = nodeIDs, reverseNodeIDs = reverse,
         nodeTextures = { Mining = { [1249] = "tin.tga" } },
+        nodeExpansion = { Mining = { [1249] = 12, [1250] = 12, [1245] = 12, [100] = 11 }, ["Herb Gathering"] = { [1481] = 12 } },
         GetNodesForZone = function(_, zone, t) return pairs(gmdbs[t][zone] or {}) end,
         DecodeLoc = function(_, id) return math.floor(id / 1000000) / 10000, math.floor(id % 1000000 / 100) / 10000 end,
         GetNameForNode = function(self, t, id) return self.reverseNodeIDs[t][id] end,

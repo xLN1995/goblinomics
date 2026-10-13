@@ -3,7 +3,7 @@ if GOBLINOMICS_CLIENT_BLOCKED then return end
 -- GatherMate2 connector: the known gathering nodes of every zone as a node source
 -- (API.Nodes) for Gatherer farms and routes. Read only, at runtime, through the
 -- GatherMate2 addon object (GetNodesForZone, DecodeLoc, GetNameForNode,
--- GetIDForNode, nodeTextures); nothing is copied or written. New, deleted or
+-- GetIDForNode, nodeTextures, nodeExpansion); nothing is copied or written. New, deleted or
 -- imported nodes (GatherMate2's AceEvent messages) mark the data as changed.
 local ADDON_NAME = ...
 
@@ -78,6 +78,31 @@ function Source:Nodes(uiMapID, nodeType)
     return out
 end
 
+-- Expansion of a zone: the most common expansion of its ore and herb nodes
+-- (GatherMate2's nodeExpansion, 1 = Classic), as the client's level (0 = Classic).
+local zoneExpansion = {}   -- uiMapID -> level | false
+
+function Source:ZoneExpansion(uiMapID)
+    local cached = zoneExpansion[uiMapID]
+    if cached ~= nil then return cached or nil end
+    local counts, best = {}, nil
+    local byType = type(GM.nodeExpansion) == "table" and GM.nodeExpansion or {}
+    for _, nodeType in ipairs({ "Mining", "Herb Gathering" }) do
+        local expansions = byType[nodeType]
+        if expansions and GM.gmdbs and GM.gmdbs[nodeType] then
+            for _, id in GM:GetNodesForZone(uiMapID, nodeType, true) do
+                local e = expansions[id]
+                if type(e) == "number" then
+                    counts[e] = (counts[e] or 0) + 1
+                    if not best or counts[e] > counts[best] or (counts[e] == counts[best] and e > best) then best = e end
+                end
+            end
+        end
+    end
+    zoneExpansion[uiMapID] = best and (best - 1) or false
+    return best and (best - 1) or nil
+end
+
 function Source:NodeInfo(nodeType, id)
     local name = GM:GetNameForNode(nodeType, id)
     local textures = type(GM.nodeTextures) == "table" and GM.nodeTextures[nodeType]
@@ -97,7 +122,10 @@ local MESSAGES = { "GatherMate2NodeAdded", "GatherMate2NodeDeleted", "GatherMate
 local listener = {}
 local registered = false
 
-function listener.OnMessage() API.Nodes:Changed() end
+function listener.OnMessage()
+    for k in pairs(zoneExpansion) do zoneExpansion[k] = nil end
+    API.Nodes:Changed()
+end
 
 function Connector:OnEnable()
     API.Nodes:RegisterSource(Source)

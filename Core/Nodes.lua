@@ -7,7 +7,8 @@ if GOBLINOMICS_CLIENT_BLOCKED then return end
 --   src = { id, name, Types(self) -> { { key, label } }, Zones(self) -> { uiMapID },
 --           Nodes(self, uiMapID, type) -> { { id, x, y } },
 --           NodeInfo(self, type, id) -> name, icon,
---           Identify(self, localizedName) -> type, id }
+--           Identify(self, localizedName) -> type, id,
+--           ZoneExpansion(self, uiMapID) -> expansion level (0 = Classic) | nil }
 -- A source calls API.Nodes:Changed() when its data changes; NODES_CHANGED follows
 -- once, debounced.
 local _, ns = ...
@@ -62,6 +63,7 @@ function Nodes.Types() return Call("Types") or {} end
 function Nodes.Zones() return Call("Zones") or {} end
 function Nodes.List(uiMapID, nodeType) return Call("Nodes", uiMapID, nodeType) or {} end
 function Nodes.Info(nodeType, id) return Call("NodeInfo", nodeType, id) end
+function Nodes.ZoneExpansion(uiMapID) return Call("ZoneExpansion", uiMapID) end
 function Nodes.Identify(name)
     if type(name) ~= "string" or name == "" then return nil end
     return Call("Identify", name)
@@ -140,6 +142,7 @@ ns.API.Nodes = {
     Info = function(_, nodeType, id) return Nodes.Info(nodeType, id) end,
     Identify = function(_, name) return Nodes.Identify(name) end,
     Catalog = function(_, uiMapID) return Nodes.Catalog(uiMapID) end,
+    ZoneExpansion = function(_, uiMapID) return Nodes.ZoneExpansion(uiMapID) end,
     CurrentZone = function() return Nodes.CurrentZone() end,
     ZoneName = function(_, uiMapID) return Nodes.ZoneName(uiMapID) end,
     ZoneYards = function(_, uiMapID) return Nodes.ZoneYards(uiMapID) end,

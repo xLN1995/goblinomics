@@ -144,6 +144,18 @@ describe("Gatherer: gathering nodes", function()
             assert.is_false(pns.FarmEditor.ShowsNodes())
         end)
 
+        it("offers the player's zone first, then the zones in a submenu per expansion", function()
+            _G.EXPANSION_NAME11 = "Midnight"
+            WoWMock.mapID = 2405
+            WoWMock.maps[2395] = { name = "Eversong Woods", left = 0, top = 0, width = 1, height = 1 }
+            WoWMock.maps[2405] = { name = "Voidstorm", left = 0, top = 0, width = 1, height = 1 }
+            local list = pns.FarmEditor.ZoneChoices()
+            assert.same({ value = 2405, label = "Voidstorm (current)" }, list[1])
+            assert.equals("Midnight", list[2].label)
+            assert.same({ { value = 2395, label = "Eversong Woods" } }, list[2].children)
+            _G.EXPANSION_NAME11 = nil
+        end)
+
         it("adds only the rare finds of the chosen nodes as highlights", function()
             GoblinomicsGathererDB.nodeLoot = { ["Mining:1249"] = { ["i:236951"] = 95, ["i:236960"] = 5 } }
             pns.FarmEditor.Open(nil)

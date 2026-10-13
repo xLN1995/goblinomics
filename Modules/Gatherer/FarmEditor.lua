@@ -118,21 +118,32 @@ local function ZoneLabel(id)
     return ns.API.Nodes:ZoneName(id) or ("#" .. tostring(id))
 end
 
---- The player's zone first, then every zone with known nodes by name.
+--- The player's zone first, then the zones with known nodes in a submenu per
+-- expansion (newest first, zones by name); zones of no known expansion last.
 local function ZoneChoices()
     local Nodes = ns.API.Nodes
     local current = Nodes:CurrentZone()
-    local list, rest = {}, {}
+    local list, groups = {}, {}
     if current then
         list[1] = { value = current, label = ZoneLabel(current) .. " (" .. ns.L["current"] .. ")" }
     end
     for _, id in ipairs(Nodes:Zones()) do
-        if id ~= current then rest[#rest + 1] = { value = id, label = ZoneLabel(id) } end
+        local level = Nodes:ZoneExpansion(id) or -1
+        groups[level] = groups[level] or {}
+        table.insert(groups[level], { value = id, label = ZoneLabel(id) })
     end
-    table.sort(rest, function(a, b) return a.label < b.label end)
-    for _, c in ipairs(rest) do list[#list + 1] = c end
+    local levels = {}
+    for level in pairs(groups) do levels[#levels + 1] = level end
+    table.sort(levels, function(a, b) return a > b end)
+    for _, level in ipairs(levels) do
+        local zones = groups[level]
+        table.sort(zones, function(a, b) return a.label < b.label end)
+        local name = level >= 0 and _G["EXPANSION_NAME" .. level] or nil
+        list[#list + 1] = { label = name or ns.L["Other"], children = zones }
+    end
     return list
 end
+FarmEditor.ZoneChoices = ZoneChoices
 
 local function HasNode(nodeType, id)
     for _, n in ipairs(form.nodes) do

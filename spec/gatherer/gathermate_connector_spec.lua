@@ -59,6 +59,11 @@ describe("Nodes: GatherMate2 connector", function()
         assert.equals(1, catalog[2].nodes[2].count)
     end)
 
+    it("tells a zone's expansion from its ore and herb nodes", function()
+        assert.equals(11, ns.API.Nodes:ZoneExpansion(2395))
+        assert.is_nil(ns.API.Nodes:ZoneExpansion(9999))
+    end)
+
     it("identifies a node by its localized name", function()
         assert.same({ "Mining", 1250 }, { ns.API.Nodes:Identify("Umbral Tin Seam") })
         assert.same({ "Herb Gathering", 1481 }, { ns.API.Nodes:Identify("Argentleaf") })
