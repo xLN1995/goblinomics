@@ -134,6 +134,7 @@ function mock.reset()
     mock.mapPos = nil        -- { x, y } on that map
     mock.facing = 0
     mock.maps = {}           -- maps[uiMapID] = { name, continent, left, top, width, height } (world yards)
+    mock.mapArt = {}         -- mapArt[uiMapID] = { layer = { layerWidth, layerHeight, tileWidth, tileHeight }, textures }
     if InstallHookables then InstallHookables() end
 end
 
@@ -495,6 +496,8 @@ _G.C_Map = {
         return CreateVector2D(mock.mapPos[1], mock.mapPos[2])
     end,
     GetMapInfo = function(id) local m = mock.maps[id]; return m and { mapID = id, name = m.name } end,
+    GetMapArtLayers = function(id) local a = mock.mapArt[id]; return a and { a.layer } end,
+    GetMapArtLayerTextures = function(id) local a = mock.mapArt[id]; return a and a.textures end,
     GetWorldPosFromMapPos = function(id, pos)
         local m = mock.maps[id]
         if not m then return nil end

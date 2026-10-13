@@ -22,6 +22,7 @@ ns.CHANGELOG = {
                 "Gathering and fishing farms can have a zone and the nodes you farm there, several at once (for example ore and herbs). With GatherMate2 installed the farm editor lists the zones by expansion and the known nodes of a zone with their count.",
                 "Sessions count the nodes you gather. The summary and the farm show nodes per hour and gold per node, averaged over your own runs. A farm without a run shows only how many nodes are known, without a gold estimate.",
                 "\"From nodes\" in the farm editor adds the rare finds of the chosen nodes as expected highlights, learned from what those nodes gave you.",
+                "Gathering farms with a zone and nodes can get a flight route. \"Create route...\" in the farm editor groups nodes that lie close together into one stop and finds the shortest round over all stops. A preview shows the round on the zone map with its length and an estimated lap time. The route is saved with the farm and marked as out of date when the zone or the nodes change.",
             } },
             { title = "Changed", items = {
                 "After login, concentration and cooldowns are no longer listed in chat. A small window opens instead, with every character's concentration as a bar and its recipe cooldowns (ready, or the time left). It only opens when something is full or ready, and it waits until you are out of combat. /gob conc opens and closes it at any time.",

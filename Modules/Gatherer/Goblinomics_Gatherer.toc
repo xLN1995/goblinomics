@@ -15,6 +15,7 @@ Farms.lua
 Valuation.lua
 Session.lua
 NodeTracker.lua
+Route.lua
 Highlights.lua
 Lockouts.lua
 Strings.lua
@@ -23,4 +24,5 @@ HUD.lua
 Summary.lua
 Commands.lua
 FarmEditor.lua
+RouteView.lua
 GathererUI.lua

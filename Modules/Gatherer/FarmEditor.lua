@@ -114,6 +114,8 @@ local function SetInstance(journalID)
 end
 
 -- Zone and nodes ------------------------------------------------------------------------------
+local function ThemeLib() return ns.API.Theme end
+
 local function ZoneLabel(id)
     return ns.API.Nodes:ZoneName(id) or ("#" .. tostring(id))
 end
@@ -184,6 +186,7 @@ local function InitNodeRow(row, data)
             function()
                 ToggleNode(row.data.type, row.data.id)
                 dialog.fromNodes:SetShown(#form.nodes > 0)
+                FarmEditor.RefreshRoute()
             end, { width = 36 })
         row.toggle:SetPoint("LEFT", 0, 0)
         row.icon = row:CreateTexture(nil, "ARTWORK")
@@ -252,6 +255,7 @@ local function Build()
     d.zone = W.Dropdown(d.body, ZoneChoices, function() return form.zone end, function(v)
         form.zone = v
         wipe(form.nodes)
+        form.route = nil
         FarmEditor.RefreshNodes()
     end, { width = 260, placeholder = L["Choose zone"], display = function(v) return v and ZoneLabel(v) end })
     d.zoneLabel = d:Row(L["Zone"], d.zone, y)
@@ -270,6 +274,20 @@ local function Build()
     d.nodeList.box:SetPoint("RIGHT", d.body, "RIGHT", -S.PAD, 0)
     d.nodeList.box:SetHeight(NODE_ROWS * S.ROW)
     d.nodeEmpty = W.EmptyState(d.nodeList.box, L["No known nodes in this zone."])
+    -- route: status and the button to the preview
+    d.routeTop = y - NODE_ROWS * S.ROW - S.SM
+    d.routeLabel = Theme.Text(d.body, "body", C.textDim)
+    d.routeLabel:SetPoint("TOPLEFT", 0, d.routeTop - 4)
+    d.routeLabel:SetText(L["Route"])
+    d.routeButton = W.Button(d.body, L["Create route..."], { auto = true, onClick = function()
+        if ns.RouteView then ns.RouteView.Open(form, FarmEditor.RefreshRoute) end
+    end })
+    d.routeButton:SetPoint("TOPRIGHT", d.body, "TOPRIGHT", 0, d.routeTop)
+    d.routeStatus = Theme.Text(d.body, "small", C.text)
+    d.routeStatus:SetPoint("TOPLEFT", 140, d.routeTop - 6)
+    d.routeStatus:SetPoint("RIGHT", d.routeButton, "LEFT", -S.SM, 0)
+    d.routeStatus:SetJustifyH("LEFT")
+    d.routeStatus:SetWordWrap(false)
 
     -- everything below moves down while the node list is shown
     d.lower = CreateFrame("Frame", nil, d.body)
@@ -371,7 +389,11 @@ function FarmEditor.RefreshNodes()
     dialog.nodeRows = rows
     dialog.nodeList:SetData(rows)
     dialog.nodeEmpty:SetShown(shows and #rows == 0)
-    local extra = shows and (NODE_ROWS * S.ROW + S.SM) or 0
+    dialog.routeLabel:SetShown(shows)
+    dialog.routeButton:SetShown(shows)
+    dialog.routeStatus:SetShown(shows)
+    FarmEditor.RefreshRoute()
+    local extra = shows and (NODE_ROWS * S.ROW + S.SM + S.CONTROL_H + S.SM) or 0
     dialog.lower:ClearAllPoints()
     dialog.lower:SetPoint("TOPLEFT", dialog.body, "TOPLEFT", 0, dialog.nodeTop - extra)
     dialog.lower:SetPoint("BOTTOMRIGHT", dialog.body, "BOTTOMRIGHT", 0, 0)
@@ -419,6 +441,35 @@ function FarmEditor.AddFromLastSession()
     FarmEditor.RefreshItems()
 end
 
+--- "68 stops, 8,420 yd, about 4:40" for a route.
+function FarmEditor.RouteText(route)
+    local API = ns.API
+    local lap = ns.Route.LapSeconds(route)
+    return API.Lf("%d stops, %s yd, about %s", #route.stops, API.Format:Number(route.length),
+        ("%d:%02d"):format(math.floor(lap / 60), lap % 60))
+end
+
+--- Status line and button of the route row.
+function FarmEditor.RefreshRoute()
+    if not dialog then return end
+    local L, API = ns.L, ns.API
+    local state, known = ns.Farms.RouteState({ zone = form.zone, nodes = form.nodes, route = form.route })
+    local text
+    if state == "none" then
+        text = ThemeLib().Colorize(L["No route yet"], ThemeLib().colors.textDim)
+    elseif state == "stale" then
+        text = ThemeLib().CODE.bad .. L["Out of date: zone or nodes changed"] .. "|r"
+    else
+        text = FarmEditor.RouteText(form.route)
+        if state == "grown" then
+            text = text .. "  " .. ThemeLib().CODE.dim .. API.Lf("%d new nodes known", known - form.route.nodeCount) .. "|r"
+        end
+    end
+    dialog.routeStatus:SetText(text)
+    dialog.routeButton:SetText(state == "none" and L["Create route..."] or L["Recalculate..."])
+    dialog.routeButton:SetEnabled(form.zone ~= nil and #form.nodes > 0)
+end
+
 --- Add the rare finds of the chosen nodes: items below RARE_SHARE of what they gave.
 function FarmEditor.AddFromNodes()
     local loot = ns.NodeTracker.Loot(form.nodes)
@@ -448,6 +499,7 @@ function FarmEditor.Open(farm)
     form.zone = farm and farm.zone or (not farm and ns.API.Nodes:Available() and ns.API.Nodes:CurrentZone()) or nil
     form.nodes = {}
     for _, n in ipairs(farm and farm.nodes or {}) do form.nodes[#form.nodes + 1] = { type = n.type, id = n.id } end
+    form.route = farm and farm.route or nil
     form.expectedHighlights = {}
     for _, key in ipairs(farm and farm.expectedHighlights or {}) do form.expectedHighlights[#form.expectedHighlights + 1] = key end
     dialog:SetTitle(farm and L["Edit farm"] or L["New farm"])
@@ -474,7 +526,7 @@ function FarmEditor.Spec()
         instance = form.instance or false,
         highlightThreshold = tonumber(form.highlightThreshold) or 0,
         expectedHighlights = form.expectedHighlights,
-        zone = form.zone or false, nodes = form.nodes,
+        zone = form.zone or false, nodes = form.nodes, route = form.route or false,
     }
 end
 
