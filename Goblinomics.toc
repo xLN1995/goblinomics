@@ -89,6 +89,8 @@ Core\UI\Settings.lua
 Core\UI\PricingSettings.lua
 Core\UI\Toast.lua
 Core\UI\Setup.lua
+Core\ChangelogData.lua
+Core\UI\Changelog.lua
 
 # Entry points and lifecycle driver
 Core\EntryPoints.lua

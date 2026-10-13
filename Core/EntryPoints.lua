@@ -56,6 +56,7 @@ function commands.help()
     ns.Print("/gob price <item link> - " .. L["Prices and valuation of an item"], true)
     ns.Print("/gob import - " .. L["Import history from TSM and Journalator"], true)
     ns.Print("/gob setup - " .. L["Open the setup wizard"], true)
+    ns.Print("/gob changelog - " .. L["What's new in Goblinomics"], true)
     for name, help in pairs(moduleHelp) do
         ns.Print("/gob " .. name .. " " .. help, true)
     end
@@ -79,6 +80,8 @@ end
 function commands.import() ns.UI.Show("settings") end
 
 function commands.setup() if ns.Setup then ns.Setup.Show() end end
+
+function commands.changelog() if ns.Changelog then ns.Changelog.Show(true) end end
 
 function commands.perf(arg)
     if ns.PerfReport then

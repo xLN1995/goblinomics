@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Added
+- A "What's new" window opens once after each update with the changes since
+  the version you played last, including new modules and connectors and
+  whether you have them installed. The main window has a footer now with the
+  current version and a "Changelog" button that opens it again; so does
+  `/gob changelog`.
+
 ### Changed
 - After login, concentration and cooldowns are no longer listed in chat. A
   small window opens instead, with every character's concentration as a bar

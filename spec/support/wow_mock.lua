@@ -44,6 +44,8 @@ local function NewFrame(frameType, name, parent, template)
         return group
     end
     function frame:GetPoint() return "CENTER", nil, "CENTER", 0, 0 end
+    function frame:SetFrameLevel(level) self._level = level end
+    function frame:GetFrameLevel() return self._level or 1 end
     -- as in the client: colours are numbers, a table is an error (Usage: SetColorTexture(r, g, b [, a]))
     function frame:SetColorTexture(r, g, b)
         if type(r) ~= "number" or type(g) ~= "number" or type(b) ~= "number" then
