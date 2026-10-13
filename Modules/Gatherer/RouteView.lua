@@ -14,7 +14,7 @@ ns.RouteView = RouteView
 
 local WIDTH, HEIGHT = 640, 560
 local MAP_H = 400
-local DOT, CLUSTER_DOT = 5, 9
+local DOT, CLUSTER_DOT = 7, 12   -- soft dots: a little larger than solid ones
 
 local dialog
 local form, onApply
@@ -96,15 +96,12 @@ local function Build()
     d.overlay = CreateFrame("Frame", nil, d.canvas)
     d.overlay:SetAllPoints(d.canvas)   -- a child frame: drawn above the map tiles
     d.lines = Pool(function()
-        local line = d.overlay:CreateLine(nil, "ARTWORK")
-        line:SetThickness(2)
-        line:SetColorTexture(unpack(C.accent))
+        local line = Theme.SmoothLine(d.overlay:CreateLine(nil, "ARTWORK"))
+        line:SetThickness(3)
+        Theme.Tint(line, C.accent)
         return line
     end)
-    d.dots = Pool(function()
-        local dot = d.overlay:CreateTexture(nil, "OVERLAY")
-        return dot
-    end)
+    d.dots = Pool(function() return Theme.SmoothDot(d.overlay:CreateTexture(nil, "OVERLAY")) end)
     d.labels = Pool(function()
         local fs = Theme.Text(d.overlay, 10, C.text)
         return fs
@@ -175,8 +172,8 @@ local function DrawNodes(points)
     ClearOverlay()
     for _, p in ipairs(points) do
         local dot = dialog.dots:Next()
-        dot:SetColorTexture(C.textDim[1], C.textDim[2], C.textDim[3], 0.9)
-        Place(dot, p.x * dialog.canvasW, p.y * dialog.canvasH, 3, 3)
+        ns.API.Theme.Tint(dot, C.textDim, 0.9)
+        Place(dot, p.x * dialog.canvasW, p.y * dialog.canvasH, 4, 4)
     end
 end
 
@@ -199,7 +196,7 @@ local function DrawRoute(route)
         local dot = dialog.dots:Next()
         local size = s.n > 1 and CLUSTER_DOT or DOT
         local color = i == 1 and C.accent or (s.n > 1 and C.gold or C.text)
-        dot:SetColorTexture(color[1], color[2], color[3], 1)
+        API.Theme.Tint(dot, color, 1)
         Place(dot, s.x * w, s.y * h, size, size)
         if s.n > 1 or i == 1 then
             local fs = dialog.labels:Next()
@@ -228,7 +225,9 @@ local function ShowFacts(route)
         return
     end
     local singles = #route.stops - route.clusters
-    dialog.facts:SetText(API.Lf("%d nodes: %d clusters and %d single stops", route.nodeCount, route.clusters, singles))
+    local facts = API.Lf("%d nodes: %d clusters and %d single stops", route.nodeCount, route.clusters, singles)
+    if (route.dropped or 0) > 0 then facts = facts .. "  " .. API.Lf("(%d far off, left out)", route.dropped) end
+    dialog.facts:SetText(facts)
     dialog.lap:SetText(ns.FarmEditor.RouteText(route) .. "  " .. ns.API.Theme.CODE.dim
         .. L["(lap time at an assumed flight speed)"] .. "|r")
 end

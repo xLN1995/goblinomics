@@ -254,7 +254,7 @@ function Widgets.IconButton(parent, kind, opts)
     if kind == "close" then
         icon = CreateFrame("Frame", nil, b)
         icon:SetSize(size * 0.45, size * 0.45)
-        icon.lines = { icon:CreateLine(nil, "OVERLAY"), icon:CreateLine(nil, "OVERLAY") }
+        icon.lines = { Theme.SmoothLine(icon:CreateLine(nil, "OVERLAY")), Theme.SmoothLine(icon:CreateLine(nil, "OVERLAY")) }
         local h = size * 0.225
         icon.lines[1]:SetStartPoint("CENTER", icon, -h, h)
         icon.lines[1]:SetEndPoint("CENTER", icon, h, -h)
@@ -262,8 +262,8 @@ function Widgets.IconButton(parent, kind, opts)
         icon.lines[2]:SetEndPoint("CENTER", icon, h, h)
         function icon:SetColor(c)
             for _, l in ipairs(self.lines) do
-                l:SetThickness(1.5)
-                l:SetColorTexture(unpack(c))
+                l:SetThickness(2.5)
+                Theme.Tint(l, c)
             end
         end
     else

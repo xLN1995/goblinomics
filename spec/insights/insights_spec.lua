@@ -154,6 +154,9 @@ describe("M7 Insights", function()
             local stripes = S.Stripes(layout.bands[1])
             assert.is_true(#stripes > 1 and #stripes <= 60)
             assert.is_near(layout.bands[1].y0, stripes[1].y, math.abs(layout.bands[1].y1 - layout.bands[1].y0) * 0.05 + 1e-9)
+            -- each stripe's right edge meets the next one's left edge: no steps
+            for i = 1, #stripes - 1 do assert.is_near(stripes[i].yEnd, stripes[i + 1].y, 1e-9) end
+            assert.is_near(layout.bands[1].y1, stripes[#stripes].yEnd, 1e-9)
         end)
 
         it("bundles more than seven sources into others", function()

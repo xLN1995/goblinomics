@@ -1,7 +1,8 @@
 if GOBLINOMICS_CLIENT_BLOCKED then return end
 -- Modules/Gatherer/HUD.lua
 -- Compact standalone session window: farm, running time, total, GPH, the three
--- most valuable items, pause/resume and stop. Visible while a session exists
+-- most valuable items, pause/resume and stop; for a farm with a route a button
+-- that switches to the full-screen farm HUD. Visible while a session exists
 -- (hideable per session). The clock ticks once per second only while a session
 -- runs and the HUD is shown; values are recomputed on session updates, debounced.
 local _, ns = ...
@@ -22,6 +23,29 @@ local function Position()
     return c.hudPos
 end
 
+-- Default place of the session window and of the farm HUD's side panel.
+HUD.DEFAULT_POINT = { "TOPRIGHT", "TOPRIGHT", -260, -200 }
+
+--- Anchor a frame at the shared place (the session window and the farm HUD's side
+-- panel stand at the same spot); point is the corner both keep.
+function HUD.Place(f)
+    local pos = Position()
+    local d = HUD.DEFAULT_POINT
+    f:ClearAllPoints()
+    if pos.point then
+        f:SetPoint(pos.point, UIParent, pos.relPoint or pos.point, pos.x or 0, pos.y or 0)
+    else
+        f:SetPoint(d[1], UIParent, d[2], d[3], d[4])
+    end
+end
+
+--- Remember where a frame was dragged as the shared place.
+function HUD.SavePlace(f)
+    local pos = Position()
+    local point, _, relPoint, x, y = f:GetPoint(1)
+    pos.point, pos.relPoint, pos.x, pos.y = point, relPoint, x, y
+end
+
 local function Build()
     local API = ns.API
     local W, Theme = API.Widgets, API.Theme
@@ -40,20 +64,12 @@ local function Build()
     end)
     f:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing()
-        local pos = Position()
-        local point, _, relPoint, x, y = self:GetPoint(1)
-        pos.point, pos.relPoint, pos.x, pos.y = point, relPoint, x, y
+        HUD.SavePlace(self)
     end)
-    local pos = Position()
-    if pos.point then
-        f:SetPoint(pos.point, UIParent, pos.relPoint or pos.point, pos.x or 0, pos.y or 0)
-    else
-        f:SetPoint("TOPRIGHT", -260, -200)
-    end
 
     f.title = Theme.Text(f, 12, C.gold)
     f.title:SetPoint("TOPLEFT", 8, -7)
-    f.title:SetPoint("RIGHT", -24, 0)
+    f.title:SetPoint("RIGHT", -24 - 44, 0)
     f.title:SetWordWrap(false)
     local close = CreateFrame("Button", nil, f)
     close:SetSize(16, 16)
@@ -66,6 +82,11 @@ local function Build()
         W.ShowTooltip(self, L["Hide"], { L["Hides the HUD until the next session. /gob farm hud shows it again."] })
     end)
     close:SetScript("OnLeave", W.HideTooltip)
+    f.farmHud = W.Button(f, L["HUD"], { width = 40, height = 16, onClick = function()
+        if ns.FarmHUD then ns.FarmHUD.ToggleWithHint() end
+    end, tooltip = L["Farm HUD"],
+        tooltipLines = { L["Full-screen HUD with the farm's route. Shows up in the farm's zone, out of combat."] } })
+    f.farmHud:SetPoint("RIGHT", close, "LEFT", -4, 0)
 
     f.time = Theme.Text(f, 16, C.text)
     f.time:SetPoint("TOPLEFT", 8, -24)
@@ -131,15 +152,18 @@ end
 
 function HUD.Refresh()
     local s = ns.Session.Active()
-    if not s or s.hudHidden then
+    -- the full-screen farm HUD replaces it while shown
+    if not s or s.hudHidden or (ns.FarmHUD and ns.FarmHUD.IsShown()) then
         StopTicker()
         if frame then frame:Hide() end
         return
     end
     frame = frame or Build()
+    if not frame:IsShown() then HUD.Place(frame) end   -- the farm HUD's panel may have moved the spot
     local L = ns.L
     local farm = s.farmId and ns.Farms.Get(s.farmId) or nil
     frame.title:SetText(farm and farm.name or L["Ad-hoc session"])
+    frame.farmHud:SetShown(ns.FarmHUD ~= nil and ns.FarmHUD.Route() ~= nil)
     valuation = ns.Session.Evaluate(s)
     frame.total:SetText(Money(valuation.total))
     local running = s.runningSince ~= nil

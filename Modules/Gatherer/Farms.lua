@@ -63,6 +63,7 @@ function Farms.CleanRoute(value)
     return {
         zone = zone, radius = tonumber(value.radius) or ns.Route.RADIUS, nodes = tostring(value.nodes or ""),
         nodeCount = tonumber(value.nodeCount) or 0, stops = stops, clusters = tonumber(value.clusters) or 0,
+        dropped = tonumber(value.dropped) or 0,
         length = tonumber(value.length) or 0, created = tonumber(value.created) or time(),
     }
 end

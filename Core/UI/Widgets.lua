@@ -53,17 +53,17 @@ function Widgets.Chevron(parent, direction, size)
     size = size or 8
     local f = CreateFrame("Frame", nil, parent)
     f:SetSize(size, size)
-    f.lines = { f:CreateLine(nil, "OVERLAY"), f:CreateLine(nil, "OVERLAY") }
+    f.lines = { Theme.SmoothLine(f:CreateLine(nil, "OVERLAY")), Theme.SmoothLine(f:CreateLine(nil, "OVERLAY")) }
     local color = C.textDim
     function f:SetColor(c)
         color = c
-        for _, l in ipairs(self.lines) do l:SetColorTexture(unpack(c)) end
+        for _, l in ipairs(self.lines) do Theme.Tint(l, c) end
     end
     function f:SetDirection(d)
         local p = CHEVRON[d] or CHEVRON.down
         local h = size / 2
         for i, l in ipairs(self.lines) do
-            l:SetThickness(1.5)
+            l:SetThickness(2.5)
             l:SetStartPoint("CENTER", self, p[i][1] * h, p[i][2] * h)
             l:SetEndPoint("CENTER", self, p[i + 1][1] * h, p[i + 1][2] * h)
         end
@@ -627,11 +627,11 @@ function Widgets.LineChart(parent, opts)
         for i = 2, #points do
             local line = lines[i - 1]
             if not line then
-                line = f:CreateLine(nil, "ARTWORK")
+                line = Theme.SmoothLine(f:CreateLine(nil, "ARTWORK"))
                 lines[i - 1] = line
             end
-            line:SetThickness(opts.thickness or 2)
-            line:SetColorTexture(unpack(color))
+            line:SetThickness((opts.thickness or 2) * 1.5)
+            Theme.Tint(line, color)
             line:SetStartPoint("BOTTOMLEFT", f, points[i - 1].x, points[i - 1].y)
             line:SetEndPoint("BOTTOMLEFT", f, points[i].x, points[i].y)
             line:Show()

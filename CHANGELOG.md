@@ -22,13 +22,28 @@
 - "From nodes" in the farm editor adds the rare finds of the chosen nodes as
   expected highlights, learned from what those nodes gave you.
 - Gathering farms with a zone and nodes can get a flight route. "Create
-  route..." in the farm editor groups nodes that lie close together into one
-  stop and finds the shortest round over all stops. A preview shows the round
-  on the zone map with its length and an estimated lap time. The route is
-  saved with the farm and marked as out of date when the zone or the nodes
-  change.
+  route..." in the farm editor groups the nodes into stops that cover
+  everything within half the minimap's view, leaves out stops far off the
+  round, skips stops the round already passes closely and smooths sharp
+  turns. A preview shows the round on the zone map with its length, an
+  estimated lap time and how many nodes were left out. The route is saved
+  with the farm and marked as out of date when the zone or the nodes change.
+- A full-screen farm HUD for farms with a route: a radar around you, turned
+  with your view, shows the farm's nodes, the stops and lines along the next
+  three stops; nodes turn grey once mined or found empty on this lap. Under it
+  the minimap's tracking points appear enlarged, so you see which nodes stand
+  right now (needs Find Herbs or Find Minerals; can be switched off). A side
+  panel at the session window's place (dragging either moves both) shows time,
+  gold, nodes, your best items and the distance and time to the next three
+  stops. You join the round at the nearest stop; reaching one of the next
+  stops moves on. Switch it with the HUD button in the session window, a key
+  binding or `/gob farm hud`, skip a stop with another key or `/gob farm
+  skip`. It can also show up by itself (setting, off by default) and hides in
+  combat, in instances and outside the farm's zone.
 
 ### Changed
+- Lines, points and areas in the charts, the cash flow diagram and the
+  small arrows are drawn with smooth edges now instead of pixel steps.
 - After login, concentration and cooldowns are no longer listed in chat. A
   small window opens instead, with every character's concentration as a bar
   and its recipe cooldowns (ready, or the time left). It only opens when

@@ -1,9 +1,16 @@
 if GOBLINOMICS_CLIENT_BLOCKED then return end
 -- Modules/Gatherer/Route.lua
--- Flight route over the known nodes of a farm: nodes close together become one
--- stop, the stops are ordered into the shortest round trip found.
---   Cluster   2 or more nodes within RADIUS yards of a common centre are one stop
---             (densest first, a grid finds the neighbours); a lone node is a stop
+-- Flight route over the known nodes of a farm (a covering salesman problem: every
+-- node within sight of the round, not every node visited):
+--   Cluster   nodes within the cover radius of a common centre are one stop (densest
+--             first, a grid finds the neighbours); a lone node is a stop. The radius
+--             is half the minimap's view radius, so a stop's nodes show on the
+--             minimap well before it is reached.
+--   Prune     stops whose detour per node costs more than OUTLIER times the round's
+--             average are left out (lone nodes far off); stops whose nodes the line
+--             from the stop before to the one after passes within the radius anyway
+--             are dropped (shortcut); a last 2-opt pass trades small detours for
+--             fewer sharp turns (turn penalty, only within TURN_SLACK yards)
 --   Optimize  up to 8 stops exact; otherwise nearest neighbour from up to 12 starts,
 --             each improved with 2-opt (neighbour lists, don't-look bits) and
 --             Or-opt (move 1-3 stops, also reversed) until nothing improves; the
@@ -17,7 +24,12 @@ local _, ns = ...
 local Route = {}
 ns.Route = Route
 
-Route.RADIUS = 15         -- yards around a stop
+Route.RADIUS = 15         -- yards around a stop (fallback; routes use the cover radius)
+Route.VIEW_RADIUS = 333.33 -- yards the minimap shows around the player at zoom 0 outdoors
+Route.OUTLIER = 2.5       -- a stop's detour per node above this times the average: left out
+local TURN_WEIGHT = 0.25  -- yards per radian of turning, times the cover radius
+local TURN_SLACK = 15     -- yards a smoother turn may add per change
+local SMOOTH_WINDOW = 80  -- stops a smoothing reversal may span
 Route.FLIGHT_YPS = 30     -- assumed travel speed for the lap time
 Route.MAX_STOPS = 2000
 local BUDGET_MS = 40
@@ -432,6 +444,127 @@ function Route.Optimize(stops, yield, progress)
     return Rotate(stops, best)
 end
 
+-- Pruning and smoothing --------------------------------------------------------------------------
+--- Half the minimap's view radius (fully zoomed out, outdoors).
+function Route.CoverRadius()
+    local r = C_Minimap and C_Minimap.GetViewRadius and Minimap and Minimap:GetZoom() == 0
+        and C_Minimap.GetViewRadius()
+    if type(r) ~= "number" or (issecretvalue and issecretvalue(r)) or r <= 0 then r = Route.VIEW_RADIUS end
+    return r / 2
+end
+
+local function SegmentDistance(p, a, b)
+    local dx, dy = b.x - a.x, b.y - a.y
+    local len2 = dx * dx + dy * dy
+    local t = len2 > 0 and math.max(0, math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2)) or 0
+    local ex, ey = a.x + t * dx - p.x, a.y + t * dy - p.y
+    return sqrt(ex * ex + ey * ey)
+end
+
+--- Leave out stops whose detour per node is far above the round's average. Returns
+-- the new tour and the number of nodes left out.
+function Route.PruneOutliers(stops, tour, factor)
+    factor = factor or Route.OUTLIER
+    local dropped = 0
+    while #tour > 3 do
+        local n, total = #tour, 0
+        for _, i in ipairs(tour) do total = total + stops[i].n end
+        local average = Route.Length(stops, tour) / math.max(1, total)
+        local worst, worstCost
+        for k = 1, n do
+            local p, w, q = tour[(k - 2) % n + 1], tour[k], tour[k % n + 1]
+            local detour = Dist(stops, p, w) + Dist(stops, w, q) - Dist(stops, p, q)
+            local cost = detour / stops[w].n
+            if not worstCost or cost > worstCost then worst, worstCost = k, cost end
+        end
+        if worstCost <= factor * average then break end
+        dropped = dropped + stops[tour[worst]].n
+        table.remove(tour, worst)
+    end
+    return tour, dropped
+end
+
+--- Drop stops whose nodes the line from the stop before to the stop after passes
+-- within the radius anyway; their nodes count for the nearer neighbour.
+function Route.Shortcut(stops, tour, points, radius)
+    local changed = true
+    while changed and #tour > 3 do
+        changed = false
+        local n = #tour
+        for k = 1, n do
+            local p, w, q = tour[(k - 2) % n + 1], tour[k], tour[k % n + 1]
+            local covered = true
+            for _, j in ipairs(stops[w].members or {}) do
+                if SegmentDistance(points[j], stops[p], stops[q]) > radius then covered = false break end
+            end
+            if covered then
+                local to = Dist(stops, w, p) <= Dist(stops, w, q) and p or q
+                stops[to].n = stops[to].n + stops[w].n
+                stops[to].members = stops[to].members or {}
+                for _, j in ipairs(stops[w].members or {}) do table.insert(stops[to].members, j) end
+                table.remove(tour, k)
+                changed = true
+                break
+            end
+        end
+    end
+    return tour
+end
+
+local function Turn(stops, u, v, w)
+    local ax, ay = stops[v].x - stops[u].x, stops[v].y - stops[u].y
+    local bx, by = stops[w].x - stops[v].x, stops[w].y - stops[v].y
+    local la, lb = sqrt(ax * ax + ay * ay), sqrt(bx * bx + by * by)
+    if la == 0 or lb == 0 then return 0 end
+    return math.acos(math.max(-1, math.min(1, (ax * bx + ay * by) / (la * lb))))
+end
+
+--- 2-opt with length plus a turn penalty: a reversal that removes sharp turns is
+-- taken when it adds at most TURN_SLACK yards. True when anything changed.
+function Route.Smooth(stops, tour, radius, yield)
+    yield = yield or NoYield
+    local n = #tour
+    if n < 6 then return false end
+    local weight = TURN_WEIGHT * radius
+    local function At(k) return tour[(k - 1) % n + 1] end
+    -- turning over the window i-1 .. j+2 (the only turns a reversal of i+1..j changes)
+    local function Turns(i, j)
+        local sum = 0
+        for _, k in ipairs({ i, i + 1, j, j + 1 }) do sum = sum + Turn(stops, At(k - 1), At(k), At(k + 1)) end
+        return sum
+    end
+    local function Reverse(lo, hi)
+        while lo < hi do
+            local a, b = (lo - 1) % n + 1, (hi - 1) % n + 1
+            tour[a], tour[b] = tour[b], tour[a]
+            lo, hi = lo + 1, hi - 1
+        end
+    end
+    local changedAny, changed, passes = false, true, 0
+    while changed and passes < 20 do
+        changed, passes = false, passes + 1
+        for i = 1, n - 3 do
+            -- long rounds: only reversals within a window, so the pass stays fast
+            for j = i + 2, math.min(n - 1, i + n - 3, i + SMOOTH_WINDOW) do
+                local a, b, c, d = At(i), At(i + 1), At(j), At(j + 1)
+                local dLen = Dist(stops, a, c) + Dist(stops, b, d) - Dist(stops, a, b) - Dist(stops, c, d)
+                if dLen <= TURN_SLACK then
+                    local before = Turns(i, j)
+                    Reverse(i + 1, j)
+                    local after = Turns(i, j)
+                    if dLen + weight * (after - before) < -EPS then
+                        changed, changedAny = true, true
+                    else
+                        Reverse(i + 1, j)
+                    end
+                end
+            end
+            if i % 10 == 0 then yield() end
+        end
+    end
+    return changedAny
+end
+
 -- Building a route ------------------------------------------------------------------------------
 --- "Mining:1249,Mining:1250": the chosen nodes, sorted.
 function Route.Signature(nodes)
@@ -474,10 +607,20 @@ function Route.Build(zone, nodes, yield, progress)
     progress("cluster", 0, 1)
     local yards = {}
     for i, p in ipairs(points) do yards[i] = { x = p.x * width, y = p.y * height } end
-    local stops = Route.Cluster(yards, Route.RADIUS, yield)
+    local radius = Route.CoverRadius()
+    local stops = Route.Cluster(yards, radius, yield)
     if #stops > Route.MAX_STOPS then return nil, "size" end
     progress("cluster", 1, 1)
     local order = Route.Optimize(stops, yield, progress)
+    local dropped
+    order, dropped = Route.PruneOutliers(stops, order)
+    order = Route.Shortcut(stops, order, yards, radius)
+    -- the remaining stops once more as the shortest round, then smoothed
+    local kept = {}
+    for i, idx in ipairs(order) do kept[i] = stops[idx] end
+    stops = kept
+    order = Route.Optimize(stops, yield, progress)
+    Route.Smooth(stops, order, radius, yield)
     local out, clusters = {}, 0
     for i, idx in ipairs(order) do
         local s = stops[idx]
@@ -485,8 +628,9 @@ function Route.Build(zone, nodes, yield, progress)
         if s.n > 1 then clusters = clusters + 1 end
     end
     return {
-        zone = zone, radius = Route.RADIUS, nodes = Route.Signature(nodes), nodeCount = #points,
-        stops = out, clusters = clusters, length = floor(Route.Length(stops, order) + 0.5), created = time(),
+        zone = zone, radius = floor(radius + 0.5), nodes = Route.Signature(nodes), nodeCount = #points,
+        dropped = dropped, stops = out, clusters = clusters, length = floor(Route.Length(stops, order) + 0.5),
+        created = time(),
     }
 end
 
