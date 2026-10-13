@@ -321,7 +321,8 @@ local function BuildSettings(parent, y)
         description = L["When a character's concentration is full or a cooldown is ready."],
         get = function() return settings.notifyToast end,
         set = function(on) settings.notifyToast = on end })
-    form:Toggle({ label = L["Chat line at login"], description = L["Everything that is full or ready, once after login."],
+    form:Toggle({ label = L["Overview at login"],
+        description = L["A window with every character when something is full or ready after login."],
         get = function() return settings.notifyChat end,
         set = function(on) settings.notifyChat = on end })
     form:Toggle({ label = L["Line in the minimap tooltip"], description = L["How many are ready and when the next one is."],

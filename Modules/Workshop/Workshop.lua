@@ -38,7 +38,7 @@ ns.Workshop = Workshop
 local PARTS = { "Recipes", "Reagents", "Purchases", "CraftTracker", "Lots", "Orders", "Concentration", "Salvage",
     "Disenchant",
     "Stats", "Retention", "Recompute", "Professions", "ProfessionNotices", "Pulse", "PulseNotices", "ProfessionButton",
-    "WorkshopSummary", "WorkshopUI", "WorkshopProfessions", "WorkshopPulse" }
+    "WorkshopSummary", "WorkshopUI", "WorkshopProfessions", "WorkshopPulse", "ProfessionPopup" }
 
 function Workshop:OnInit()
     local root = self.db.root
