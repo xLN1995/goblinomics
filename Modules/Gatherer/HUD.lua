@@ -23,6 +23,29 @@ local function Position()
     return c.hudPos
 end
 
+-- Default place of the session window and of the farm HUD's side panel.
+HUD.DEFAULT_POINT = { "TOPRIGHT", "TOPRIGHT", -260, -200 }
+
+--- Anchor a frame at the shared place (the session window and the farm HUD's side
+-- panel stand at the same spot); point is the corner both keep.
+function HUD.Place(f)
+    local pos = Position()
+    local d = HUD.DEFAULT_POINT
+    f:ClearAllPoints()
+    if pos.point then
+        f:SetPoint(pos.point, UIParent, pos.relPoint or pos.point, pos.x or 0, pos.y or 0)
+    else
+        f:SetPoint(d[1], UIParent, d[2], d[3], d[4])
+    end
+end
+
+--- Remember where a frame was dragged as the shared place.
+function HUD.SavePlace(f)
+    local pos = Position()
+    local point, _, relPoint, x, y = f:GetPoint(1)
+    pos.point, pos.relPoint, pos.x, pos.y = point, relPoint, x, y
+end
+
 local function Build()
     local API = ns.API
     local W, Theme = API.Widgets, API.Theme
@@ -41,16 +64,8 @@ local function Build()
     end)
     f:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing()
-        local pos = Position()
-        local point, _, relPoint, x, y = self:GetPoint(1)
-        pos.point, pos.relPoint, pos.x, pos.y = point, relPoint, x, y
+        HUD.SavePlace(self)
     end)
-    local pos = Position()
-    if pos.point then
-        f:SetPoint(pos.point, UIParent, pos.relPoint or pos.point, pos.x or 0, pos.y or 0)
-    else
-        f:SetPoint("TOPRIGHT", -260, -200)
-    end
 
     f.title = Theme.Text(f, 12, C.gold)
     f.title:SetPoint("TOPLEFT", 8, -7)
@@ -144,6 +159,7 @@ function HUD.Refresh()
         return
     end
     frame = frame or Build()
+    if not frame:IsShown() then HUD.Place(frame) end   -- the farm HUD's panel may have moved the spot
     local L = ns.L
     local farm = s.farmId and ns.Farms.Get(s.farmId) or nil
     frame.title:SetText(farm and farm.name or L["Ad-hoc session"])

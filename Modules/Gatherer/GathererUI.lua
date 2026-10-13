@@ -549,14 +549,6 @@ local function BuildSettings(parent, y)
             settings.farmHudMinimap = on
             if ns.FarmHUD.IsShown() then ns.FarmHUD.UseMinimap() end
         end })
-    form:Segmented({ label = L["Farm HUD side panel"], description = L["Where the panel with time, gold and the next stops sits."],
-        options = { { value = "left", label = L["Left"] }, { value = "right", label = L["Right"] } },
-        get = function() return settings.farmHudSide end,
-        set = function(v)
-            settings.farmHudSide = v
-            ns.Gatherer.db.char.farmHudPos = nil   -- choosing a side drops a dragged place
-            ns.FarmHUD.Refresh()
-        end })
 
     form:Group(L["Watchlist"], L["Items on the watchlist always get a notification, whatever their value."])
     local listText

@@ -33,12 +33,13 @@
   three stops; nodes turn grey once mined or found empty on this lap. Under it
   the minimap's tracking points appear enlarged, so you see which nodes stand
   right now (needs Find Herbs or Find Minerals; can be switched off). A side
-  panel (left or right) shows time, gold, nodes, your best items and the
-  distance and time to the next three stops. You join the round at the nearest
-  stop; reaching one of the next stops moves on. Switch it with the HUD button
-  in the session window, a key binding or `/gob farm hud`, skip a stop with
-  another key or `/gob farm skip`. It can also show up by itself (setting, off
-  by default) and hides in combat, in instances and outside the farm's zone.
+  panel at the session window's place (dragging either moves both) shows time,
+  gold, nodes, your best items and the distance and time to the next three
+  stops. You join the round at the nearest stop; reaching one of the next
+  stops moves on. Switch it with the HUD button in the session window, a key
+  binding or `/gob farm hud`, skip a stop with another key or `/gob farm
+  skip`. It can also show up by itself (setting, off by default) and hides in
+  combat, in instances and outside the farm's zone.
 
 ### Changed
 - Lines, points and areas in the charts, the cash flow diagram and the
