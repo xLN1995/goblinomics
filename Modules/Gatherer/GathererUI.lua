@@ -214,10 +214,8 @@ local function DetailLines(id)
     local title = ("%s  " .. CODE.dim .. "%s|r"):format(farm.name, ns.CategoryName(farm.category))
     local line = API.Lf("Runs: %d   Average GPH: %s   Best GPH: %s", stats.runs, Money(stats.avgGPH),
         Money(stats.bestGPH))
+    if stats.nodes > 0 then line = line .. "   " .. API.Lf("Gold per node: %s", Money(stats.goldPerNode or 0)) end
     local expected = {}
-    -- the node values belong to the zone line: the runs line stays one line
-    local nodeStats = stats.nodes > 0 and API.Lf("Nodes per hour: %s   Gold per node: %s", stats.nodesPerHour or "-",
-        Money(stats.goldPerNode or 0)) or nil
     if farm.zone then
         local zone = API.Nodes:ZoneName(farm.zone) or ("#" .. farm.zone)
         local count = 0
@@ -230,16 +228,7 @@ local function DetailLines(id)
         expected[#expected + 1] = zone .. (count > 0 and (": " .. API.Lf("%d known nodes", count)) or "")
             .. (stats.runs == 0 and ("  " .. L["not farmed yet"]) or "")
     end
-    if nodeStats then expected[#expected + 1] = nodeStats end
     if farm.instance then expected[#expected + 1] = farm.instance.name end
-    if #farm.expectedHighlights > 0 then
-        local names = {}
-        for i, key in ipairs(farm.expectedHighlights) do
-            if i > 5 then names[#names + 1] = "..." break end
-            names[#names + 1] = ns.Valuation.ItemName(key)
-        end
-        expected[#expected + 1] = L["Highlights"] .. ": " .. table.concat(names, ", ")
-    end
     return title, line, table.concat(expected, "   ")
 end
 
