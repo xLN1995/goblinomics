@@ -2,10 +2,10 @@ if GOBLINOMICS_CLIENT_BLOCKED then return end
 -- Modules/Gatherer/Farms.lua
 -- Farm definitions (name, category, raid or dungeon from the Encounter Journal,
 -- highlight threshold, expected highlights: items that always notify the player
--- when looted in a session of this farm; for gathering and fishing a zone and the
--- nodes farmed there, several at once) and their statistics from the stored
--- session summaries (runs, average and best GPH, last run, nodes per hour and gold
--- per node).
+-- when looted in a session of this farm; for gathering and fishing a zone, the
+-- nodes farmed there, several at once, and the flight route over them) and their
+-- statistics from the stored session summaries (runs, average and best GPH, last
+-- run, nodes per hour and gold per node).
 local _, ns = ...
 
 local Farms = {}
@@ -48,6 +48,36 @@ end
 --- "type:id" key of a node.
 function Farms.NodeKey(nodeType, id) return nodeType .. ":" .. id end
 
+--- A route from the route computation, checked; nil when invalid.
+function Farms.CleanRoute(value)
+    if type(value) ~= "table" or type(value.stops) ~= "table" or #value.stops == 0 then return nil end
+    local stops = {}
+    for i = 1, math.min(#value.stops, ns.Route.MAX_STOPS) do
+        local s = value.stops[i]
+        local x, y, n = type(s) == "table" and tonumber(s.x), type(s) == "table" and tonumber(s.y), type(s) == "table" and tonumber(s.n)
+        if not (x and y and x >= 0 and x <= 1 and y >= 0 and y <= 1) then return nil end
+        stops[i] = { x = x, y = y, n = math.max(1, math.floor(n or 1)) }
+    end
+    local zone = tonumber(value.zone)
+    if not zone then return nil end
+    return {
+        zone = zone, radius = tonumber(value.radius) or ns.Route.RADIUS, nodes = tostring(value.nodes or ""),
+        nodeCount = tonumber(value.nodeCount) or 0, stops = stops, clusters = tonumber(value.clusters) or 0,
+        length = tonumber(value.length) or 0, created = tonumber(value.created) or time(),
+    }
+end
+
+--- "none", "ok", "stale" (zone or nodes changed since) or "grown" (more known nodes
+-- now; still usable), plus the number of known nodes.
+function Farms.RouteState(farm)
+    local route = farm and farm.route
+    if not route then return "none" end
+    if route.zone ~= farm.zone or route.nodes ~= ns.Route.Signature(farm.nodes) then return "stale" end
+    local known = #ns.Route.Points(farm.zone, farm.nodes)
+    if known > route.nodeCount then return "grown", known end
+    return "ok", known
+end
+
 local function Clean(spec, farm)
     farm = farm or {}
     if spec.name ~= nil then farm.name = strtrim(tostring(spec.name)) end
@@ -71,7 +101,8 @@ local function Clean(spec, farm)
         farm.zone = (zone and zone > 0) and zone or nil
     end
     if spec.nodes ~= nil then farm.nodes = Farms.CleanNodes(spec.nodes) end
-    if not Farms.HasNodes(farm.category) then farm.zone, farm.nodes = nil, nil end
+    if spec.route ~= nil then farm.route = Farms.CleanRoute(spec.route) end
+    if not Farms.HasNodes(farm.category) then farm.zone, farm.nodes, farm.route = nil, nil, nil end
     -- only raid and dungeon farms have an instance, and it must be of that kind
     local inst = farm.instance
     if inst and (not ns.IsInstanceCategory(farm.category) or inst.isRaid ~= (farm.category == "raid")) then

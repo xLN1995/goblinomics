@@ -21,6 +21,12 @@
   run shows only how many nodes are known, without a gold estimate.
 - "From nodes" in the farm editor adds the rare finds of the chosen nodes as
   expected highlights, learned from what those nodes gave you.
+- Gathering farms with a zone and nodes can get a flight route. "Create
+  route..." in the farm editor groups nodes that lie close together into one
+  stop and finds the shortest round over all stops. A preview shows the round
+  on the zone map with its length and an estimated lap time. The route is
+  saved with the farm and marked as out of date when the zone or the nodes
+  change.
 
 ### Changed
 - After login, concentration and cooldowns are no longer listed in chat. A

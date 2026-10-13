@@ -106,7 +106,7 @@ function ns.IsInstanceCategory(category)
     return category == "dungeon" or category == "raid"
 end
 
-local PARTS = { "Farms", "Session", "NodeTracker", "Highlights", "Lockouts", "Strings", "HUD", "Commands", "GathererUI" }
+local PARTS = { "Farms", "Session", "NodeTracker", "Highlights", "Lockouts", "Strings", "HUD", "Commands", "GathererUI", "RouteView" }
 
 function Gatherer:OnInit()
     local root = self.db.root
