@@ -44,10 +44,8 @@ function Commands.Run(arg)
     elseif verb == "hud" then
         if not Session.Active() then
             Print(L["No active session."])
-        elseif ns.FarmHUD.Toggle() then
-            if ns.FarmHUD.Wanted() and not ns.FarmHUD.IsShown() then
-                Print(L["The farm HUD shows up in the farm's zone, out of combat and outside instances."])
-            end
+        elseif ns.FarmHUD.ToggleWithHint() then
+            return
         elseif ns.HUD.IsShown() then
             ns.HUD.HideForSession()
         else

@@ -79,7 +79,7 @@ ns.Gatherer = Gatherer
 API.Gatherer = {
     -- key bindings: the full-screen farm HUD and its skip key
     ToggleFarmHUD = function()
-        if ns.FarmHUD and not ns.FarmHUD.Toggle() and ns.Commands then ns.Commands.Run("hud") end
+        if ns.FarmHUD and not ns.FarmHUD.ToggleWithHint() and ns.Commands then ns.Commands.Run("hud") end
     end,
     SkipStop = function() if ns.FarmHUD then ns.FarmHUD.Skip() end end,
     Summaries = function(_, from)

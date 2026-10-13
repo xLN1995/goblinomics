@@ -100,6 +100,9 @@ describe("Gatherer: farm HUD", function()
             assert.is_truthy(text:find("Stop 2: 20 yd"))
             assert.is_truthy(text:find("(3 nodes)", 1, true))
             assert.is_truthy(hud().panel.round:GetText():find("Stop 2/4"))
+            -- the next three stops along the round, distances add up
+            assert.is_truthy(hud().panel.next[2]:GetText():find("Stop 3: 120 yd"))
+            assert.is_truthy(hud().panel.next[3]:GetText():find("Stop 4: 220 yd"))
             Goblinomics.API.v1.Gatherer.SkipStop()
             assert.equals(3, FarmHUD.State().index)
             Goblinomics.API.v1.Gatherer.ToggleFarmHUD()
@@ -139,6 +142,23 @@ describe("Gatherer: farm HUD", function()
             assert.is_false(FarmHUD.IsShown())
             assert.is_false(FarmHUD.Toggle())
             assert.is_true(pns.HUD.IsShown())
+        end)
+
+        it("switches with the button in the small session window and back from the side panel", function()
+            Session.Start(farm.id)
+            local small = _G.GoblinomicsGathererHUD
+            assert.is_true(small.farmHud:IsShown())
+            small.farmHud:GetScript("OnClick")(small.farmHud, "LeftButton")
+            assert.is_true(FarmHUD.IsShown())
+            assert.is_false(small:IsShown())
+            local off = hud().panel.off
+            off:GetScript("OnClick")(off, "LeftButton")
+            assert.is_false(FarmHUD.IsShown())
+            assert.is_true(small:IsShown())
+            -- no route: no button
+            Session.Stop()
+            Session.Start(pns.Farms.Create({ name = "Plain", category = "gathering" }).id)
+            assert.is_false(small.farmHud:IsShown())
         end)
 
         it("switches the HUD with /gob farm hud and skips with /gob farm skip", function()

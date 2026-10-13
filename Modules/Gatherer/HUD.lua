@@ -1,7 +1,8 @@
 if GOBLINOMICS_CLIENT_BLOCKED then return end
 -- Modules/Gatherer/HUD.lua
 -- Compact standalone session window: farm, running time, total, GPH, the three
--- most valuable items, pause/resume and stop. Visible while a session exists
+-- most valuable items, pause/resume and stop; for a farm with a route a button
+-- that switches to the full-screen farm HUD. Visible while a session exists
 -- (hideable per session). The clock ticks once per second only while a session
 -- runs and the HUD is shown; values are recomputed on session updates, debounced.
 local _, ns = ...
@@ -53,7 +54,7 @@ local function Build()
 
     f.title = Theme.Text(f, 12, C.gold)
     f.title:SetPoint("TOPLEFT", 8, -7)
-    f.title:SetPoint("RIGHT", -24, 0)
+    f.title:SetPoint("RIGHT", -24 - 44, 0)
     f.title:SetWordWrap(false)
     local close = CreateFrame("Button", nil, f)
     close:SetSize(16, 16)
@@ -66,6 +67,11 @@ local function Build()
         W.ShowTooltip(self, L["Hide"], { L["Hides the HUD until the next session. /gob farm hud shows it again."] })
     end)
     close:SetScript("OnLeave", W.HideTooltip)
+    f.farmHud = W.Button(f, L["HUD"], { width = 40, height = 16, onClick = function()
+        if ns.FarmHUD then ns.FarmHUD.ToggleWithHint() end
+    end, tooltip = L["Farm HUD"],
+        tooltipLines = { L["Full-screen HUD with the farm's route. Shows up in the farm's zone, out of combat."] } })
+    f.farmHud:SetPoint("RIGHT", close, "LEFT", -4, 0)
 
     f.time = Theme.Text(f, 16, C.text)
     f.time:SetPoint("TOPLEFT", 8, -24)
@@ -141,6 +147,7 @@ function HUD.Refresh()
     local L = ns.L
     local farm = s.farmId and ns.Farms.Get(s.farmId) or nil
     frame.title:SetText(farm and farm.name or L["Ad-hoc session"])
+    frame.farmHud:SetShown(ns.FarmHUD ~= nil and ns.FarmHUD.Route() ~= nil)
     valuation = ns.Session.Evaluate(s)
     frame.total:SetText(Money(valuation.total))
     local running = s.runningSince ~= nil

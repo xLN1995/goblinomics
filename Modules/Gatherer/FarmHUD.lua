@@ -3,9 +3,9 @@ if GOBLINOMICS_CLIENT_BLOCKED then return end
 -- Full-screen farm HUD for a session of a farm with a route. A see-through overlay
 -- (clicks pass through): in the middle a radar of RADAR_YARDS around the player,
 -- turned with the facing - the farm's known nodes as dots, the stops (clusters
--- larger), a line to the next stop and a thin one on to the stop after it. A side
+-- larger) and lines along the next three stops, thinner further ahead. A side
 -- panel (left or right, setting) shows farm, time, gold, GPH, nodes, the three most
--- valuable items and the next two stops with distance and time to reach them.
+-- valuable items and the next three stops with distance and time to reach them.
 -- Shown by the hotkey, /gob farm hud or automatically (setting, off by default);
 -- hidden in combat, in instances and outside the farm's zone. While it is shown
 -- the small session HUD hides. The radar updates TICK times a second only while
@@ -20,6 +20,8 @@ local RADAR_YARDS = 300
 local RING_SEGMENTS = 48
 local PANEL_W = 240
 local TOP_ITEMS = 3
+local AHEAD = 3            -- stops drawn and listed ahead
+local LINE_STYLE = { { 3, 1 }, { 2, 0.7 }, { 1.5, 0.45 } }   -- thickness, alpha per leg
 
 local module, frame
 local points               -- the farm's nodes (zone coordinates), cached while shown
@@ -110,7 +112,12 @@ local function BuildPanel(f)
         return fs
     end
     p.title = Line(12, C.gold)
-    p.title:SetPoint("RIGHT", -S.SM, 0)
+    p.title:SetPoint("RIGHT", -(S.SM + 44), 0)
+    -- back to the small session window
+    p.off = W.Button(p, L["HUD"], { width = 40, height = 16, onClick = function() FarmHUD.Toggle() end,
+        tooltip = L["Farm HUD"], tooltipLines = { L["Switches back to the small session window."] } })
+    p.off:SetPoint("TOPRIGHT", -S.SM, -S.SM + 2)
+    p.off:SetSelected(true)
     y = y - 18
     p.time = Line(16, C.text)
     p.pause = W.Button(p, L["Pause"], { width = 70, height = 20, onClick = function()
@@ -136,7 +143,7 @@ local function BuildPanel(f)
     end
     y = y - S.XS
     p.next = {}
-    for i = 1, 2 do
+    for i = 1, AHEAD do
         local fs = Line(i == 1 and 12 or 11, i == 1 and C.text or C.textDim)
         fs:SetPoint("RIGHT", -S.SM, 0)
         p.next[i] = fs
@@ -230,11 +237,12 @@ local function DrawRadar(route, state, px, py, facing, width, height)
     end
     frame.dots:Finish()
     local Follow = ns.RouteFollow
-    local nextI, afterI = state.index, Follow.After(route, state.index, 1)
+    local ahead = {}
+    for k = 0, math.min(AHEAD, #route.stops) - 1 do ahead[Follow.After(route, state.index, k)] = true end
     for i, s in ipairs(route.stops) do
         local x, y, inside = RadarPoint(s.x, s.y, px, py, facing, width, height)
         if inside then
-            local current = i == nextI or i == afterI
+            local current = ahead[i]
             Dot(frame.stops, x, y, s.n > 1 and 9 or 6, current and C.accent or (s.n > 1 and C.gold or C.text))
             if s.n > 1 then
                 local fs = frame.labels:Next()
@@ -246,12 +254,14 @@ local function DrawRadar(route, state, px, py, facing, width, height)
     end
     frame.stops:Finish()
     frame.labels:Finish()
-    local s1, s2 = route.stops[nextI], route.stops[afterI]
-    local x1, y1 = RadarPoint(s1.x, s1.y, px, py, facing, width, height)
-    Line(0, 0, x1, y1, 3, C.accent)
-    if #route.stops > 1 then
-        local x2, y2 = RadarPoint(s2.x, s2.y, px, py, facing, width, height)
-        Line(x1, y1, x2, y2, 1.5, C.accent, 0.5)
+    -- player -> next stop -> the one after -> ..., thinner further ahead
+    local fromX, fromY = 0, 0
+    for k = 0, math.min(AHEAD, #route.stops) - 1 do
+        local s = route.stops[Follow.After(route, state.index, k)]
+        local x, y = RadarPoint(s.x, s.y, px, py, facing, width, height)
+        local style = LINE_STYLE[k + 1]
+        Line(fromX, fromY, x, y, style[1], C.accent, style[2])
+        fromX, fromY = x, y
     end
     frame.lines:Finish()
 end
@@ -272,17 +282,31 @@ function FarmHUD.StopText(route, i, distance, speed)
         .. "  " .. FarmHUD.TravelText(distance, speed)
 end
 
-local function DrawStops(route, state, px, py, width, height, speed)
+--- The next AHEAD stops along the round with the distance flown to each.
+function FarmHUD.Ahead(route, state, px, py, width, height)
     local Follow = ns.RouteFollow
-    local i1 = state.index
-    local i2 = Follow.After(route, i1, 1)
-    local d1 = Follow.Distance(route, i1, px, py, width, height)
-    local s1 = route.stops[i1]
-    local s2 = route.stops[i2]
-    local d2 = d1 + math.sqrt(((s2.x - s1.x) * width) ^ 2 + ((s2.y - s1.y) * height) ^ 2)
-    frame.panel.next[1]:SetText("> " .. FarmHUD.StopText(route, i1, d1, speed))
-    frame.panel.next[2]:SetText(#route.stops > 1 and ("> " .. FarmHUD.StopText(route, i2, d2, speed)) or "")
-    frame.panel.round:SetText(ns.API.Lf("Stop %d/%d", i1, #route.stops)
+    local out, distance, prev = {}, 0, nil
+    for k = 0, math.min(AHEAD, #route.stops) - 1 do
+        local i = Follow.After(route, state.index, k)
+        local s = route.stops[i]
+        if prev then
+            distance = distance + math.sqrt(((s.x - prev.x) * width) ^ 2 + ((s.y - prev.y) * height) ^ 2)
+        else
+            distance = Follow.Distance(route, i, px, py, width, height)
+        end
+        out[#out + 1] = { index = i, distance = distance }
+        prev = s
+    end
+    return out
+end
+
+local function DrawStops(route, state, px, py, width, height, speed)
+    local ahead = FarmHUD.Ahead(route, state, px, py, width, height)
+    for k = 1, AHEAD do
+        local a = ahead[k]
+        frame.panel.next[k]:SetText(a and ("> " .. FarmHUD.StopText(route, a.index, a.distance, speed)) or "")
+    end
+    frame.panel.round:SetText(ns.API.Lf("Stop %d/%d", state.index, #route.stops)
         .. ((state.laps or 0) > 0 and ("  " .. ns.API.Lf("Lap %d", state.laps + 1)) or ""))
 end
 
@@ -383,6 +407,16 @@ function FarmHUD.Toggle()
     if not s then return false end
     s.farmHud = not FarmHUD.Wanted()
     FarmHUD.Refresh()
+    return true
+end
+
+--- Toggle, and say why the HUD does not show when it cannot right now (other zone,
+-- combat, instance). False when the session's farm has no route.
+function FarmHUD.ToggleWithHint()
+    if not FarmHUD.Toggle() then return false end
+    if FarmHUD.Wanted() and not FarmHUD.IsShown() then
+        ns.API.Print(ns.L["The farm HUD shows up in the farm's zone, out of combat and outside instances."], true)
+    end
     return true
 end
 
