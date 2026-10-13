@@ -1,7 +1,7 @@
 if GOBLINOMICS_CLIENT_BLOCKED then return end
 -- Core/UI/Shell.lua
 -- Main window: header (Jealousmeter placeholder until M3), sidebar with the
--- registered tabs, content area. Built on first open; a tab page is built on its
+-- registered tabs, content area, footer with the version and the changelog. Built on first open; a tab page is built on its
 -- first selection. While the window is hidden it holds no bus subscriptions.
 local _, ns = ...
 
@@ -13,7 +13,7 @@ local L = ns.L
 local OWNER = "Core.UI"
 
 local WIDTH, HEIGHT = 900, 580
-local HEADER_H, SIDEBAR_W = 56, 176
+local HEADER_H, SIDEBAR_W, FOOTER_H = 56, 176, 22
 
 local frame
 local sideFrame
@@ -182,14 +182,43 @@ local function Build()
     -- Sidebar and content
     local sidebar = CreateFrame("Frame", nil, frame)
     sidebar:SetPoint("TOPLEFT", 0, -HEADER_H)
-    sidebar:SetPoint("BOTTOMLEFT")
+    sidebar:SetPoint("BOTTOMLEFT", 0, FOOTER_H)
     sidebar:SetWidth(SIDEBAR_W)
     Theme.Fill(sidebar, C.sidebar)
     frame.sidebar = sidebar
     local content = CreateFrame("Frame", nil, frame)
     content:SetPoint("TOPLEFT", SIDEBAR_W + 16, -HEADER_H - 16)
-    content:SetPoint("BOTTOMRIGHT", -16, 16)
+    content:SetPoint("BOTTOMRIGHT", -16, FOOTER_H + 16)
     frame.content = content
+
+    -- Footer: version left, changelog right
+    local footer = CreateFrame("Frame", nil, frame)
+    footer:SetPoint("BOTTOMLEFT")
+    footer:SetPoint("BOTTOMRIGHT")
+    footer:SetHeight(FOOTER_H)
+    Theme.Fill(footer, C.header)
+    local edge = footer:CreateTexture(nil, "BORDER")
+    edge:SetColorTexture(unpack(C.border))
+    edge:SetPoint("TOPLEFT")
+    edge:SetPoint("TOPRIGHT")
+    edge:SetHeight(1)
+    frame.footer = footer
+    local version = Goblinomics.VERSION
+    footer.version = Theme.Text(footer, "small", C.textDim)
+    footer.version:SetPoint("LEFT", Theme.space.PAD, 0)
+    footer.version:SetText(version:match("^%d") and ("v" .. version) or version)
+    local changelog = CreateFrame("Button", nil, footer)
+    changelog:SetHeight(FOOTER_H)
+    changelog:SetPoint("RIGHT", -Theme.space.PAD, 0)
+    changelog.label = Theme.Text(changelog, "small", C.textDim)
+    changelog.label:SetPoint("RIGHT")
+    changelog.label:SetText(L["Changelog"])
+    local labelW = changelog.label:GetStringWidth()
+    changelog:SetWidth(type(labelW) == "number" and labelW > 0 and labelW + 4 or 80)
+    changelog:SetScript("OnEnter", function(self) self.label:SetTextColor(unpack(C.accent)) end)
+    changelog:SetScript("OnLeave", function(self) self.label:SetTextColor(unpack(C.textDim)) end)
+    changelog:SetScript("OnClick", function() if ns.Changelog then ns.Changelog.Toggle() end end)
+    footer.changelog = changelog
 
     -- Restricted banner
     local banner = CreateFrame("Frame", nil, frame)
@@ -232,7 +261,7 @@ BuildSidePanel = function()
     frame:SetWidth(WIDTH + width)
     sideFrame = CreateFrame("Frame", nil, frame)
     sideFrame:SetPoint("TOPRIGHT", 0, -HEADER_H)
-    sideFrame:SetPoint("BOTTOMRIGHT")
+    sideFrame:SetPoint("BOTTOMRIGHT", 0, FOOTER_H)
     sideFrame:SetWidth(width)
     Theme.Fill(sideFrame, C.sidebar)
     local edge = sideFrame:CreateTexture(nil, "BORDER")
@@ -240,7 +269,7 @@ BuildSidePanel = function()
     edge:SetPoint("TOPLEFT")
     edge:SetPoint("BOTTOMLEFT")
     edge:SetWidth(1)
-    frame.content:SetPoint("BOTTOMRIGHT", -16 - width, 16)
+    frame.content:SetPoint("BOTTOMRIGHT", -16 - width, FOOTER_H + 16)
     frame.banner:SetPoint("TOPRIGHT", -width, -HEADER_H)
     if spec.build then ns.SafeCall(spec.build, sideFrame) end
     if frame:IsShown() and spec.onShow then ns.SafeCall(spec.onShow, sideFrame) end
@@ -260,7 +289,7 @@ function UI.OnModuleSidePanel()
     local width = spec and (spec.width or 110) or 0
     sideFrame:SetShown(spec ~= nil)
     frame:SetWidth(WIDTH + width)
-    frame.content:SetPoint("BOTTOMRIGHT", -16 - width, 16)
+    frame.content:SetPoint("BOTTOMRIGHT", -16 - width, FOOTER_H + 16)
     frame.banner:SetPoint("TOPRIGHT", -width, -HEADER_H)
 end
 

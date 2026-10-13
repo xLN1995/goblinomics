@@ -93,6 +93,8 @@ read_globals = {
 }
 
 files["Locales/**"] = { max_line_length = false }
+-- release notes keep one bullet point per line (Core/ChangelogData.lua mirrors CHANGELOG.md)
+files["Core/ChangelogData.lua"] = { max_line_length = false }
 
 files["spec/**"] = {
     std = "+busted",

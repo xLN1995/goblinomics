@@ -75,6 +75,7 @@ local function OnLogin()
         ns.EntryPoints.OnLogin()
     end
     if ns.Setup then ns.Setup.OnLogin() end
+    if ns.Changelog then ns.Changelog.OnLogin() end
 end
 
 local function OnLogout()

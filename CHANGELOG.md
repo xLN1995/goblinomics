@@ -3,14 +3,11 @@
 ## [Unreleased]
 
 ### Added
-- Gathering and fishing farms can have a zone and the nodes you farm there,
-  several at once (for example ore and herbs). With GatherMate2 installed the
-  farm editor lists the known nodes of the zone with their count.
-- Sessions count the nodes you gather. The summary and the farm show nodes
-  per hour and gold per node, averaged over your own runs. A farm without a
-  run shows only how many nodes are known, without a gold estimate.
-- "From nodes" in the farm editor adds the rare finds of the chosen nodes as
-  expected highlights, learned from what those nodes gave you.
+- A "What's new" window opens once after each update with the changes since
+  the version you played last, including new modules and connectors and
+  whether you have them installed. The main window has a footer now with the
+  current version and a "Changelog" button that opens it again; so does
+  `/gob changelog`.
 
 ### Changed
 - After login, concentration and cooldowns are no longer listed in chat. A
