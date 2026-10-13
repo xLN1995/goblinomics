@@ -75,6 +75,7 @@ read_globals = {
     "C_AddOns", "C_Timer", "C_Container", "C_Bank", "C_Item", "C_Mail",
     "C_TradeSkillUI", "C_RestrictedActions", "C_PlayerInfo", "C_AuctionHouse",
     "C_CurrencyInfo", "C_Secrets", "C_Spell", "GetServerExpansionLevel", "ProfessionsFrame", "C_ChallengeMode", "C_EventUtils", "C_AddOnProfiler", "Enum",
+    "C_Map", "CreateVector2D", "GetPlayerFacing",
     -- Libraries
     "LibStub",
     -- GlobalStrings
@@ -88,6 +89,7 @@ read_globals = {
     "AUCTION_INVOICE_MAIL_SUBJECT", "ARTISANS_CONSORTIUM", "RETRIEVING_DATA",
     -- Third-party addons consumed via connectors
     "TSM_API", "Auctionator", "CraftSim", "CraftSimAPI", "Journalator", "TradeSkillMasterDB", "JOURNALATOR_ARCHIVE",
+    "GatherMate2",
 }
 
 files["Locales/**"] = { max_line_length = false }

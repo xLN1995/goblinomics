@@ -183,6 +183,8 @@ function Summary.Show(summary)
     if summary.started then
         facts[#facts + 1] = API.Format:Date(summary.started, "longStamp")
     end
+    local nodes = ns.NodeTracker.Text(summary.nodes, summary.duration, v.total)
+    if nodes then facts[#facts + 1] = nodes end
     window.facts:SetText(table.concat(facts, "  \194\183  "))
     window.total:SetText(Money(v.total))
     window.gph:SetText(API.Lf("%s per hour", Money(v.gph)))

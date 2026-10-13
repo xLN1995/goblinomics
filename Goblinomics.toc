@@ -6,7 +6,7 @@
 ## Category: Goblinomics
 ## Group: Goblinomics
 ## SavedVariables: GoblinomicsDB
-## OptionalDeps: TradeSkillMaster, Auctionator, CraftSim
+## OptionalDeps: TradeSkillMaster, Auctionator, CraftSim, GatherMate2
 ## IconTexture: Interface\AddOns\Goblinomics\Media\goblinomics_icon_64
 ## AddonCompartmentFunc: Goblinomics_OnAddonCompartmentClick
 ## AddonCompartmentFuncOnEnter: Goblinomics_OnAddonCompartmentEnter
@@ -69,6 +69,7 @@ Core\Tracking\Bags.lua
 Core\Price.lua
 Core\Sources\Vendor.lua
 Core\Value.lua
+Core\Nodes.lua
 
 Core\Debug.lua
 

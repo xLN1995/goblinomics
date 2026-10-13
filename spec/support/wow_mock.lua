@@ -128,6 +128,10 @@ function mock.reset()
     mock.sendMail = { money = 0, price = 30, cod = 0 }
     mock.trade = { partner = "Trader", moneyIn = 0, moneyOut = 0 }
     mock.deposit = 0
+    mock.mapID = nil         -- uiMapID of the player
+    mock.mapPos = nil        -- { x, y } on that map
+    mock.facing = 0
+    mock.maps = {}           -- maps[uiMapID] = { name, continent, left, top, width, height } (world yards)
     if InstallHookables then InstallHookables() end
 end
 
@@ -477,6 +481,25 @@ _G.GetLootSourceInfo = function(slot)
     return unpack(l.sources or {})
 end
 _G.IsFishingLoot = function() return mock.fishing end
+
+-- Map: world positions as in the client, the map's x along the world's y axis
+_G.CreateVector2D = function(x, y)
+    return { x = x, y = y, GetXY = function(self) return self.x, self.y end }
+end
+_G.C_Map = {
+    GetBestMapForUnit = function() return mock.mapID end,
+    GetPlayerMapPosition = function(mapID)
+        if not mock.mapPos or mapID ~= mock.mapID then return nil end
+        return CreateVector2D(mock.mapPos[1], mock.mapPos[2])
+    end,
+    GetMapInfo = function(id) local m = mock.maps[id]; return m and { mapID = id, name = m.name } end,
+    GetWorldPosFromMapPos = function(id, pos)
+        local m = mock.maps[id]
+        if not m then return nil end
+        return m.continent or 1, CreateVector2D(m.top - pos.y * m.height, m.left - pos.x * m.width)
+    end,
+}
+_G.GetPlayerFacing = function() return mock.facing end
 
 _G.issecretvalue = function(v)
     return v ~= nil and mock.secrets[v] == true

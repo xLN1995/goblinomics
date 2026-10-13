@@ -13,6 +13,7 @@ move-folders:
   Goblinomics/Connectors/TSM: Goblinomics_Connector_TSM
   Goblinomics/Connectors/Auctionator: Goblinomics_Connector_Auctionator
   Goblinomics/Connectors/CraftSim: Goblinomics_Connector_CraftSim
+  Goblinomics/Connectors/GatherMate2: Goblinomics_Connector_GatherMate2
 
 ignore:
   - .github

@@ -112,9 +112,10 @@ local function RefreshSession()
     local farm = s.farmId and ns.Farms.Get(s.farmId) or nil
     local duration = ns.Session.Duration(s)
     local status = s.runningSince and "" or ("  " .. CODE.dim .. (s.autoPaused and L["Auto-paused"] or L["Paused"]) .. "|r")
-    p.title:SetText(("%s  %s%s"):format(farm and farm.name or L["Ad-hoc session"],
-        ns.Valuation.FormatDuration(duration), status))
     local v = ns.Session.Evaluate(s)
+    local nodes = ns.NodeTracker.Text(s.nodes, duration, v.total)
+    p.title:SetText(("%s  %s%s%s"):format(farm and farm.name or L["Ad-hoc session"],
+        ns.Valuation.FormatDuration(duration), nodes and ("  " .. CODE.dim .. nodes .. "|r") or "", status))
     local gph = Money(v.gph)
     local repair = ns.Session.RepairRate() and Money(-v.repair) or L["unknown"]
     local cells = {
@@ -213,7 +214,23 @@ local function DetailLines(id)
     local title = ("%s  " .. CODE.dim .. "%s|r"):format(farm.name, ns.CategoryName(farm.category))
     local line = API.Lf("Runs: %d   Average GPH: %s   Best GPH: %s", stats.runs, Money(stats.avgGPH),
         Money(stats.bestGPH))
+    if stats.nodes > 0 then
+        line = line .. "   " .. API.Lf("Nodes per hour: %s   Gold per node: %s", stats.nodesPerHour or "-",
+            Money(stats.goldPerNode or 0))
+    end
     local expected = {}
+    if farm.zone then
+        local zone = API.Nodes:ZoneName(farm.zone) or ("#" .. farm.zone)
+        local count = 0
+        for _, n in ipairs(farm.nodes or {}) do
+            for _, node in ipairs(API.Nodes:List(farm.zone, n.type)) do
+                if node.id == n.id then count = count + 1 end
+            end
+        end
+        -- without own runs only the known nodes, no gold estimate
+        expected[#expected + 1] = zone .. (count > 0 and (": " .. API.Lf("%d known nodes", count)) or "")
+            .. (stats.runs == 0 and ("  " .. L["not farmed yet"]) or "")
+    end
     if farm.instance then expected[#expected + 1] = farm.instance.name end
     if #farm.expectedHighlights > 0 then
         local names = {}
