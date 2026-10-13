@@ -12,7 +12,8 @@ local _, ns = ...
 
 ns.CHANGELOG = {
     {
-        version = "unreleased",
+        version = "1.1.0",
+        date = "2026-10-14",
         modules = {
             { addon = "Goblinomics_Connector_GatherMate2", text = "Brings the gathering nodes GatherMate2 knows into your Gatherer farms, so you can pick a zone and its nodes." },
         },

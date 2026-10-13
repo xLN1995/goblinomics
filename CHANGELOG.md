@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.1.0] - 2026-10-14
 
 ### New modules
 - Goblinomics_Connector_GatherMate2: Brings the gathering nodes GatherMate2
