@@ -214,11 +214,10 @@ local function DetailLines(id)
     local title = ("%s  " .. CODE.dim .. "%s|r"):format(farm.name, ns.CategoryName(farm.category))
     local line = API.Lf("Runs: %d   Average GPH: %s   Best GPH: %s", stats.runs, Money(stats.avgGPH),
         Money(stats.bestGPH))
-    if stats.nodes > 0 then
-        line = line .. "   " .. API.Lf("Nodes per hour: %s   Gold per node: %s", stats.nodesPerHour or "-",
-            Money(stats.goldPerNode or 0))
-    end
     local expected = {}
+    -- the node values belong to the zone line: the runs line stays one line
+    local nodeStats = stats.nodes > 0 and API.Lf("Nodes per hour: %s   Gold per node: %s", stats.nodesPerHour or "-",
+        Money(stats.goldPerNode or 0)) or nil
     if farm.zone then
         local zone = API.Nodes:ZoneName(farm.zone) or ("#" .. farm.zone)
         local count = 0
@@ -231,6 +230,7 @@ local function DetailLines(id)
         expected[#expected + 1] = zone .. (count > 0 and (": " .. API.Lf("%d known nodes", count)) or "")
             .. (stats.runs == 0 and ("  " .. L["not farmed yet"]) or "")
     end
+    if nodeStats then expected[#expected + 1] = nodeStats end
     if farm.instance then expected[#expected + 1] = farm.instance.name end
     if #farm.expectedHighlights > 0 then
         local names = {}
@@ -466,6 +466,7 @@ local function BuildTab(page)
     tab.detailStats = Theme.Text(page, 11, C.text)
     tab.detailStats:SetPoint("TOPLEFT", left, top - 20)
     tab.detailStats:SetPoint("RIGHT", page, "RIGHT", 0, 0)
+    tab.detailStats:SetWordWrap(false)
     tab.detailExpected = Theme.Text(page, 11, C.textDim)
     tab.detailExpected:SetPoint("TOPLEFT", left, top - 38)
     tab.detailExpected:SetPoint("RIGHT", page, "RIGHT", 0, 0)
