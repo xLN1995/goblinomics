@@ -7,7 +7,9 @@ if GOBLINOMICS_CLIENT_BLOCKED then return end
 -- hangs on it (buttons, border, pins of other addons) waits on a hidden stand-in at
 -- its old place. Giving it back restores parent, anchors, size, scale, strata,
 -- level, alpha, zoom, mouse and the rotation setting exactly as they were - also
--- at logout, since the rotation is a saved setting.
+-- at logout, since the rotation is a saved setting. Minimap addons that put the
+-- minimap back at their position (e.g. when it is shown or resized) are answered
+-- by anchoring it to the radar again right away.
 local _, ns = ...
 
 local Radar = {}
@@ -16,7 +18,7 @@ ns.MinimapRadar = Radar
 -- yards from the centre to the edge at zoom 0 outdoors, when the client cannot say
 local FALLBACK_RADIUS = 233.33
 
-local saved, standIn, moved
+local saved, standIn, moved, holder
 local lent = false
 local enforcing = false
 local hooked = false
@@ -63,9 +65,21 @@ local function SetCVar(name, value)
     if Minimap_UpdateRotationSetting then Minimap_UpdateRotationSetting() end
 end
 
+--- Anchor the minimap in the middle of the frame it is lent to.
+local function Centre()
+    enforcing = true
+    Call("ClearAllPoints")
+    if not pcall(Call, "SetPoint", "CENTER", holder, "CENTER", 0, 0) then Call("SetAllPoints", holder) end
+    enforcing = false
+end
+
 local function Hook()
     if hooked then return end
     hooked = true
+    -- another addon moves it back to its place: into the radar again
+    hooksecurefunc(Minimap, "SetPoint", function()
+        if lent and not enforcing then Centre() end
+    end)
     -- others may zoom or fade the minimap while it is lent: keep our values
     hooksecurefunc(Minimap, "SetZoom", function()
         if lent and not enforcing then
@@ -123,6 +137,7 @@ function Radar.Lend(parent, size)
     end
     Hook()
     lent = true
+    holder = parent
     enforcing = true
     Call("Hide")
     Call("SetParent", parent)
@@ -138,6 +153,8 @@ function Radar.Lend(parent, size)
     Call("Show")
     enforcing = false
     SetCVar("rotateMinimap", "1")
+    -- showing and resizing it can make a minimap addon put it back at its place
+    Centre()
     return true
 end
 

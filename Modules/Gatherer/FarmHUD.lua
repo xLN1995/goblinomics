@@ -3,8 +3,9 @@ if GOBLINOMICS_CLIENT_BLOCKED then return end
 -- Full-screen farm HUD for a session of a farm with a route. A see-through overlay
 -- (clicks pass through): in the middle a radar around the player, turned with the
 -- facing. Under it Blizzard's minimap (MinimapRadar, setting on by default): its
--- tracking blips show the nodes that stand right now. On top the farm's known nodes as dots, the stops (clusters
--- larger) and lines along the next three stops, thinner further ahead. A side
+-- tracking blips show the nodes that stand right now. On top the farm's known nodes
+-- as dots (yellow, grey once mined or found empty on this lap), the next three stops
+-- (clusters larger) and lines along them, thinner further ahead. A side
 -- panel (left or right, setting) shows farm, time, gold, GPH, nodes, the three most
 -- valuable items and the next three stops with distance and time to reach them.
 -- Shown by the hotkey, /gob farm hud or automatically (setting, off by default);
@@ -18,11 +19,10 @@ ns.FarmHUD = FarmHUD
 
 local TICK = 1 / 15
 local RADAR_YARDS = 300   -- without the minimap; with it the minimap's view radius
-local RING_SEGMENTS = 48
 local PANEL_W = 240
 local TOP_ITEMS = 3
 local AHEAD = 3            -- stops drawn and listed ahead
-local LINE_STYLE = { { 3, 1 }, { 2, 0.7 }, { 1.5, 0.45 } }   -- thickness, alpha per leg
+local LINE_STYLE = { { 7, 0.95 }, { 5, 0.7 }, { 4, 0.45 } }  -- thickness (soft edges), alpha per leg
 
 local module, frame
 local points               -- the farm's nodes (zone coordinates), cached while shown
@@ -30,6 +30,7 @@ local elapsed, clock = 0, 0
 local checkToken = 0
 
 local function Settings() return module.db.settings end
+
 local function IsSecret(v) return issecretvalue ~= nil and issecretvalue(v) == true end
 local function Money(copper) return ns.API.Money.Format(copper, { abbreviate = true }) end
 
@@ -152,6 +153,10 @@ local function BuildPanel(f)
     end
     p.round = Line(11, C.textDim)
     y = y - 16
+    p.legend = Line(10, C.textDim)
+    p.legend:SetPoint("RIGHT", -S.SM, 0)
+    p.legend:SetText(Theme.Colorize(L["not checked"], C.gold) .. "  " .. Theme.Colorize(L["mined or empty"], C.neutral))
+    y = y - 16
     p:SetHeight(-y + S.SM)
     return p
 end
@@ -177,24 +182,22 @@ local function Build()
     f.overlay:SetAllPoints(f.radar)
     f.overlay:EnableMouse(false)
     -- ring
-    for i = 1, RING_SEGMENTS do
-        local a1, a2 = (i - 1) / RING_SEGMENTS * 2 * math.pi, i / RING_SEGMENTS * 2 * math.pi
-        local line = f.overlay:CreateLine(nil, "BACKGROUND")
-        line:SetThickness(1.5)
-        line:SetColorTexture(C.border[1], C.border[2], C.border[3], 0.8)
-        line:SetStartPoint("CENTER", f.radar, math.cos(a1) * f.radius, math.sin(a1) * f.radius)
-        line:SetEndPoint("CENTER", f.radar, math.cos(a2) * f.radius, math.sin(a2) * f.radius)
-    end
+    -- smooth shapes placed between pixels: dots and lines glide instead of jumping
+    f.ring = Theme.Unsnap(f.overlay:CreateTexture(nil, "BACKGROUND"))
+    f.ring:SetTexture(Theme.RING)
+    f.ring:SetAllPoints(f.radar)
+    Theme.Tint(f.ring, C.textDim, 0.55)
     f.player = W.Chevron(f.overlay, "up", 14)
     f.player:SetPoint("CENTER")
     f.player:SetColor(C.text)
     f.scaleLabel = Theme.Text(f.overlay, 10, C.textDim)
     f.scaleLabel:SetPoint("TOP", f.radar, "BOTTOM", 0, -4)
-    f.dots = Pool(function() return f.overlay:CreateTexture(nil, "ARTWORK") end)
-    f.stops = Pool(function() return f.overlay:CreateTexture(nil, "OVERLAY") end)
+    f.dots = Pool(function() return Theme.SmoothDot(f.overlay:CreateTexture(nil, "ARTWORK")) end)
+    f.stops = Pool(function() return Theme.SmoothDot(f.overlay:CreateTexture(nil, "OVERLAY")) end)
     f.labels = Pool(function() return Theme.Text(f.overlay, 10, C.text) end)
-    f.lines = Pool(function() return f.overlay:CreateLine(nil, "ARTWORK") end)
+    f.lines = Pool(function() return Theme.SmoothLine(f.overlay:CreateLine(nil, "ARTWORK")) end)
     f.panel = BuildPanel(f)
+    f:Hide()   -- new frames show at once: Refresh shows it and starts the updates
     return f
 end
 
@@ -219,7 +222,7 @@ end
 
 local function Dot(pool, x, y, size, color, alpha)
     local t = pool:Next()
-    t:SetColorTexture(color[1], color[2], color[3], alpha or 1)
+    ns.API.Theme.Tint(t, color, alpha or 1)
     t:ClearAllPoints()
     t:SetPoint("CENTER", frame.radar, "CENTER", x, y)
     t:SetSize(size, size)
@@ -229,33 +232,41 @@ end
 local function Line(x1, y1, x2, y2, thickness, color, alpha)
     local l = frame.lines:Next()
     l:SetThickness(thickness)
-    l:SetColorTexture(color[1], color[2], color[3], alpha or 1)
+    ns.API.Theme.Tint(l, color, alpha or 1)
     l:SetStartPoint("CENTER", frame.radar, x1, y1)
     l:SetEndPoint("CENTER", frame.radar, x2, y2)
 end
 
+--- Colour of a known node: mined or found empty grey, otherwise yellow.
+function FarmHUD.NodeColor(status)
+    local C = ns.API.Theme.colors
+    if status == "gathered" or status == "gone" then return C.neutral end
+    return C.gold
+end
+
 local function DrawRadar(route, state, px, py, facing, width, height)
     local C = ns.API.Theme.colors
-    -- known nodes; with the minimap's blips (the ones standing now) they step back
-    local known = ns.MinimapRadar.IsLent() and 0.35 or 0.8
-    for _, p in ipairs(points or {}) do
-        local x, y, inside = RadarPoint(p.x, p.y, px, py, facing, width, height)
-        if inside then Dot(frame.dots, x, y, 3, C.textDim, known) end
-    end
-    frame.dots:Finish()
     local Follow = ns.RouteFollow
     local ahead = {}
     for k = 0, math.min(AHEAD, #route.stops) - 1 do ahead[Follow.After(route, state.index, k)] = true end
+    local nodes = state.nodes or {}
+    for _, p in ipairs(points or {}) do
+        local x, y, inside = RadarPoint(p.x, p.y, px, py, facing, width, height)
+        if inside then Dot(frame.dots, x, y, 7, FarmHUD.NodeColor(nodes[Follow.NodeKey(p)]), 0.95) end
+    end
+    frame.dots:Finish()
+    -- the next stops as rings of their colour, clusters with their count
     for i, s in ipairs(route.stops) do
-        local x, y, inside = RadarPoint(s.x, s.y, px, py, facing, width, height)
-        if inside then
-            local current = ahead[i]
-            Dot(frame.stops, x, y, s.n > 1 and 9 or 6, current and C.accent or (s.n > 1 and C.gold or C.text))
-            if s.n > 1 then
-                local fs = frame.labels:Next()
-                fs:SetText(tostring(s.n))
-                fs:ClearAllPoints()
-                fs:SetPoint("LEFT", frame.radar, "CENTER", x + 6, y)
+        if ahead[i] then
+            local x, y, inside = RadarPoint(s.x, s.y, px, py, facing, width, height)
+            if inside then
+                Dot(frame.stops, x, y, s.n > 1 and 16 or 11, C.text, 0.3)
+                if s.n > 1 then
+                    local fs = frame.labels:Next()
+                    fs:SetText(tostring(s.n))
+                    fs:ClearAllPoints()
+                    fs:SetPoint("LEFT", frame.radar, "CENTER", x + 7, y)
+                end
             end
         end
     end
@@ -267,7 +278,7 @@ local function DrawRadar(route, state, px, py, facing, width, height)
         local s = route.stops[Follow.After(route, state.index, k)]
         local x, y = RadarPoint(s.x, s.y, px, py, facing, width, height)
         local style = LINE_STYLE[k + 1]
-        Line(fromX, fromY, x, y, style[1], C.accent, style[2])
+        Line(fromX, fromY, x, y, style[1], C.text, style[2])
         fromX, fromY = x, y
     end
     frame.lines:Finish()
@@ -359,6 +370,14 @@ local function OnUpdate(_, dt)
     if not width then return end
     local state = FarmHUD.State()
     ns.RouteFollow.Advance(state, route, px, py, width, height)
+    -- what the player learned about the nodes: mined, passed within reach
+    local _, _, s = FarmHUD.Route()
+    local gathered = s and s.nodes and s.nodes.total or 0
+    if state.gathered and gathered > state.gathered and points then
+        ns.RouteFollow.Mark(state, points, px, py, width, height, "gathered")
+    end
+    state.gathered = gathered
+    if points then ns.RouteFollow.Observe(state, points, px, py, width, height) end
     local speed = ns.RouteFollow.Speed(state, GetTime(), px * width, py * height)
     DrawRadar(route, state, px, py, facing, width, height)
     DrawStops(route, state, px, py, width, height, speed)
@@ -422,6 +441,18 @@ end
 
 function FarmHUD.IsShown() return frame ~= nil and frame:IsShown() end
 
+--- The interact target became a game object near the player: a node stands there.
+function FarmHUD.OnSoftInteract(_, _, guid)
+    if not FarmHUD.IsShown() or not points then return end
+    guid = guid or (UnitGUID and UnitGUID("softinteract"))
+    if IsSecret(guid) or type(guid) ~= "string" or not guid:match("^GameObject") then return end
+    local route = FarmHUD.Route()
+    if not route then return end
+    local px, py = FarmHUD.Position(route)
+    local width, height = ns.API.Nodes:ZoneYards(route.zone)
+    if px and width then ns.RouteFollow.Mark(FarmHUD.State(), points, px, py, width, height, "seen") end
+end
+
 --- Hotkey and /gob farm hud: switch the full-screen HUD for this session.
 -- Returns false when the session's farm has no route.
 function FarmHUD.Toggle()
@@ -462,6 +493,9 @@ end
 
 function FarmHUD.Enable(m)
     module = m
+    -- after a login or /reload the HUD stays off until switched on again
+    local s = ns.Session.Active()
+    if s then s.farmHud = false end
     local OWNER = "Goblinomics_Gatherer.FarmHUD"
     ns.API.On("GATHERER_SESSION", OnSession, OWNER)
     ns.API.On("GATHERER_FARMS", function() FarmHUD.Refresh() end, OWNER)
@@ -471,6 +505,7 @@ function FarmHUD.Enable(m)
     m:RegisterEvent("ZONE_CHANGED_NEW_AREA", function() FarmHUD.Refresh() end, "FarmHUD")
     -- the minimap's rotation is a saved setting: give it back before it is saved
     m:RegisterEvent("PLAYER_LOGOUT", function() ns.MinimapRadar.Return() end, "FarmHUD")
+    m:RegisterEvent("PLAYER_SOFT_INTERACT_CHANGED", FarmHUD.OnSoftInteract, "FarmHUD")
     FarmHUD.Refresh()
 end
 

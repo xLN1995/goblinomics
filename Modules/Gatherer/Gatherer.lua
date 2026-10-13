@@ -123,6 +123,7 @@ function Gatherer:OnInit()
         if type(root[key]) ~= "table" then root[key] = {} end
     end
     if type(root.nextFarmId) ~= "number" then root.nextFarmId = 1 end
+    root.hudTrace = nil   -- left behind by a debug build of the farm HUD
 end
 
 function Gatherer:OnEnable()

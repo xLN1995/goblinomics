@@ -4,19 +4,27 @@ if GOBLINOMICS_CLIENT_BLOCKED then return end
 --   Project   a position relative to the player onto the radar, turned so the
 --             player's facing points up
 --   Nearest   the stop closest to the player: where the round is joined
---   Advance   reaching the next stop or one of the LOOKAHEAD after it (within the
---             route's radius) moves on to the stop after that; passing the end of
+--   Advance   reaching the next stop or one of the LOOKAHEAD after it (within its
+--             cluster radius, at most STOP_REACH yards) moves on to the stop after that; passing the end of
 --             the round counts a lap. The order is never planned again.
 --   Speed     travel speed measured from the last seconds of movement, for the
 --             time to the next stops; without a measurement the assumed one
+--   Nodes     what is known about each node on this lap: "gathered" (mined by
+--             the player), "seen" (the interact target showed it standing) or
+--             "gone" (the player came within reach and it was not there); nodes
+--             without a state are not checked yet. A new lap starts unchecked.
 -- Positions are zone coordinates; ZoneYards turns them into yards.
---   state = { index, laps, reached, samples, speed }
+--   state = { index, laps, reached, samples, speed, nodes = { [key] = state }, close }
 local _, ns = ...
 
 local Follow = {}
 ns.RouteFollow = Follow
 
 Follow.LOOKAHEAD = 5
+Follow.STOP_REACH = 40     -- yards around a stop's centre that count as reached (large clusters too)
+Follow.REACH = 8           -- yards: a standing node this close becomes the interact target
+Follow.LEAVE = 25          -- yards: leaving a node's reach this far ends its check
+Follow.MARK = 20           -- yards: a gather or interact target belongs to the nearest node this close
 local SPEED_WINDOW = 3     -- seconds of samples
 local MIN_SPEED = 3        -- yards per second: below this the player stands still
 
@@ -65,7 +73,7 @@ function Follow.Advance(state, route, px, py, width, height)
         state.laps, state.reached = state.laps or 0, state.reached or 0
         return true
     end
-    local radius = route.radius or ns.Route.RADIUS
+    local radius = math.min(route.radius or ns.Route.RADIUS, Follow.STOP_REACH)
     for k = math.min(Follow.LOOKAHEAD, n - 1), 0, -1 do
         local i = Follow.After(route, state.index, k)
         if Follow.Distance(route, i, px, py, width, height) <= radius then
@@ -81,7 +89,9 @@ function Follow.Move(state, route, steps)
     local n = #route.stops
     if n == 0 or not state.index then return end
     local unwrapped = state.index - 1 + steps
-    state.laps = (state.laps or 0) + math.floor(unwrapped / n)
+    local laps = math.floor(unwrapped / n)
+    state.laps = (state.laps or 0) + laps
+    if laps > 0 then state.nodes, state.close = {}, {} end   -- a new lap: nothing checked yet
     state.reached = (state.reached or 0) + steps
     state.index = unwrapped % n + 1
 end
@@ -100,4 +110,53 @@ function Follow.Speed(state, now, x, y)
         if v >= MIN_SPEED then state.speed = state.speed and (state.speed * 0.7 + v * 0.3) or v end
     end
     return state.speed or ns.Route.FLIGHT_YPS
+end
+
+-- Nodes -------------------------------------------------------------------------------------------
+--- Key of a node position.
+function Follow.NodeKey(p) return ("%.4f:%.4f"):format(p.x, p.y) end
+
+--- Nearest node to (px, py) within maxYards: index and distance, or nil.
+function Follow.NearestNode(points, px, py, width, height, maxYards)
+    local best, bestD
+    for i, p in ipairs(points) do
+        local dx, dy = (p.x - px) * width, (p.y - py) * height
+        if math.abs(dx) <= maxYards and math.abs(dy) <= maxYards then
+            local d = sqrt(dx * dx + dy * dy)
+            if d <= maxYards and (not bestD or d < bestD) then best, bestD = i, d end
+        end
+    end
+    return best, bestD
+end
+
+--- Mark the node nearest to the player: "gathered" always wins, "seen" only on an
+-- unchecked or passed node.
+function Follow.Mark(state, points, px, py, width, height, what)
+    local i = Follow.NearestNode(points, px, py, width, height, Follow.MARK)
+    if not i then return nil end
+    state.nodes = state.nodes or {}
+    local key = Follow.NodeKey(points[i])
+    if what == "gathered" or state.nodes[key] ~= "gathered" then state.nodes[key] = what end
+    return i
+end
+
+--- Nodes the player came within reach of and left again without seeing them: gone.
+function Follow.Observe(state, points, px, py, width, height)
+    state.nodes, state.close = state.nodes or {}, state.close or {}
+    for _, p in ipairs(points) do
+        local dx, dy = (p.x - px) * width, (p.y - py) * height
+        local key
+        if math.abs(dx) <= Follow.REACH and math.abs(dy) <= Follow.REACH and dx * dx + dy * dy <= Follow.REACH ^ 2 then
+            key = Follow.NodeKey(p)
+            state.close[key] = true
+        end
+    end
+    for key in pairs(state.close) do
+        local x, y = key:match("^([%d.]+):([%d.]+)$")
+        local dx, dy = (tonumber(x) - px) * width, (tonumber(y) - py) * height
+        if dx * dx + dy * dy > Follow.LEAVE ^ 2 then
+            state.close[key] = nil
+            if state.nodes[key] == nil then state.nodes[key] = "gone" end
+        end
+    end
 end

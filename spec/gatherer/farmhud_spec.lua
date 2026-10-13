@@ -59,6 +59,30 @@ describe("Gatherer: farm HUD", function()
             assert.equals(7, state.reached)
         end)
 
+        it("keeps what is known about each node on this lap", function()
+            local points = { { x = 0.1, y = 0.1 }, { x = 0.2, y = 0.1 }, { x = 0.3, y = 0.1 } }
+            local state = {}
+            -- passing node 1 within reach without seeing it: gone, once out of reach
+            Follow.Observe(state, points, 0.105, 0.1, 1000, 1000)
+            assert.is_nil(state.nodes[Follow.NodeKey(points[1])])
+            Follow.Observe(state, points, 0.15, 0.1, 1000, 1000)
+            assert.equals("gone", state.nodes[Follow.NodeKey(points[1])])
+            -- node 2 shows as interact target: seen, also after leaving
+            Follow.Observe(state, points, 0.205, 0.1, 1000, 1000)
+            Follow.Mark(state, points, 0.205, 0.1, 1000, 1000, "seen")
+            Follow.Observe(state, points, 0.26, 0.1, 1000, 1000)
+            assert.equals("seen", state.nodes[Follow.NodeKey(points[2])])
+            -- mining wins over seen; seen does not undo mined
+            Follow.Mark(state, points, 0.2, 0.1, 1000, 1000, "gathered")
+            Follow.Mark(state, points, 0.2, 0.1, 1000, 1000, "seen")
+            assert.equals("gathered", state.nodes[Follow.NodeKey(points[2])])
+            assert.is_nil(Follow.Mark(state, points, 0.5, 0.5, 1000, 1000, "seen"))   -- nothing near
+            -- a new lap starts unchecked
+            state.index = 4
+            Follow.Move(state, ROUTE, 1)
+            assert.same({}, state.nodes)
+        end)
+
         it("measures the travel speed while moving", function()
             local state = {}
             assert.equals(pns.Route.FLIGHT_YPS, Follow.Speed(state, 0, 0, 0))
@@ -193,6 +217,11 @@ describe("Gatherer: farm HUD", function()
                 assert.is_true(button:GetParent() ~= Minimap)                  -- waits on the hidden stand-in
                 Minimap:SetZoom(4)                                              -- someone zooms: kept at 0
                 assert.equals(0, Minimap:GetZoom())
+                -- a minimap addon puts it back at its place: anchored to the radar again
+                Minimap:ClearAllPoints()
+                Minimap:SetPoint("CENTER", UIParent, "CENTER", 967, 500)
+                assert.same({ "CENTER", f.radar, "CENTER", 0, 0 }, { Minimap:GetPoint(1) })
+                assert.equals(1, Minimap:GetNumPoints())
                 FarmHUD.Toggle()
                 assert.is_false(pns.MinimapRadar.IsLent())
                 assert.equals(cluster, Minimap:GetParent())
@@ -220,6 +249,48 @@ describe("Gatherer: farm HUD", function()
                 assert.equals(300, hud().yards)
                 assert.is_true(hud().player:IsShown())
             end)
+        end)
+
+        it("stays off after a reload until switched on, then follows the stored route", function()
+            Session.Start(farm.id)
+            FarmHUD.Toggle()
+            assert.is_true(FarmHUD.IsShown())
+            WoWMock.fire("PLAYER_LOGOUT")
+            local saved, now = GoblinomicsGathererDB, WoWMock.now
+            pns = select(2, load_gatherer({ before = function()
+                WoWMock.now = now + 5
+                _G.GoblinomicsGathererDB = saved
+                load_addon_file(C.GM2.path, C.GM2.addon, {})
+                WoWMock.fire("ADDON_LOADED", C.GM2.addon)
+            end }))
+            WoWMock.mapID, WoWMock.mapPos = 2395, { 0.18, 0.1 }   -- the reload reset the mock world
+            WoWMock.maps[2395] = { name = "Eversong Woods", left = 0, top = 0, width = 1000, height = 1000 }
+            assert.is_false(pns.FarmHUD.IsShown())
+            pns.FarmHUD.Toggle()
+            assert.is_true(pns.FarmHUD.IsShown())
+            assert.is_function(hud():GetScript("OnUpdate"))
+            tick()
+            assert.is_truthy(hud().panel.next[1]:GetText():find("Stop 2"))
+        end)
+
+        it("colours the nodes: yellow until mined or found empty, then grey", function()
+            local C = Goblinomics.API.v1.Theme.colors
+            assert.equals(C.gold, FarmHUD.NodeColor(nil))
+            assert.equals(C.gold, FarmHUD.NodeColor("seen"))
+            assert.equals(C.neutral, FarmHUD.NodeColor("gathered"))
+            assert.equals(C.neutral, FarmHUD.NodeColor("gone"))
+            Session.Start(farm.id)
+            FarmHUD.Toggle()
+            tick()
+            -- the interact target shows the node at stop 2: seen
+            WoWMock.mapPos = { 0.199, 0.1 }
+            WoWMock.fire("PLAYER_SOFT_INTERACT_CHANGED", nil, "GameObject-0-1-2-3-4-0001")
+            assert.equals("seen", FarmHUD.State().nodes["0.2000:0.1000"])
+            -- mining it (the session counts a node): mined
+            local s = Session.Active()
+            s.nodes = { total = 1, by = { unknown = 1 } }
+            tick()
+            assert.equals("gathered", FarmHUD.State().nodes["0.2000:0.1000"])
         end)
 
         it("switches the HUD with /gob farm hud and skips with /gob farm skip", function()
