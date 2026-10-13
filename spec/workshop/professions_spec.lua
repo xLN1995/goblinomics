@@ -176,7 +176,7 @@ describe("Workshop: concentration and cooldowns", function()
         assert.is_truthy(f.lines[1].left:GetText():find("Alt"))
     end)
 
-    it("toasts once when an entry becomes due, prints due entries at login and fills the tooltip", function()
+    it("toasts once when an entry becomes due, opens the overview at login and fills the tooltip", function()
         local toasts = {}
         ns.Toast.Show = function(spec) toasts[#toasts + 1] = spec end
         local root = GoblinomicsWorkshopDB
@@ -184,9 +184,7 @@ describe("Workshop: concentration and cooldowns", function()
         root.chars["Alt-Realm"] = { name = "Alt", professions = { [2901] = { name = "Blacksmithing", amount = 1000,
             max = 1000, cycleSec = 360, readAt = WoWMock.now } } }
         char().professions = { [2900] = { name = "Alchemy", amount = 998, max = 1000, cycleSec = 360, readAt = WoWMock.now } }
-        local line = N.LoginLine(root, root.settings, WoWMock.now)
-        assert.is_truthy(line:find("Alt %(Blacksmithing%)"))
-        assert.is_falsy(line:find("Alchemy"))
+        assert.is_true(N.HasReady(root, root.settings, WoWMock.now))
         local left, right = N.TooltipText(root, root.settings, WoWMock.now)
         assert.equals("Concentration & cooldowns", left)
         assert.is_truthy(right:find("1 ready"))
@@ -195,7 +193,8 @@ describe("Workshop: concentration and cooldowns", function()
         for k in pairs(WoWMock.chat) do WoWMock.chat[k] = nil end
         WoWMock.advance(7)
         WoWMock.flush()
-        assert.is_truthy(WoWMock.chat[1] and WoWMock.chat[1]:find("Blacksmithing"))
+        assert.equals(0, #WoWMock.chat)
+        assert.is_true(wns.ProfessionPopup.IsOpen())
         assert.equals(0, #toasts)
         WoWMock.advance(2 * 360)
         WoWMock.flush()
@@ -207,7 +206,7 @@ describe("Workshop: concentration and cooldowns", function()
         GameTooltip:SetOwner(UIParent)
         ns.UI.FillTooltipProviders(GameTooltip)
         for _, l in ipairs(GameTooltip.lines) do assert.is_falsy(tostring(l.left or l[1] or ""):find("Concentration")) end
-        assert.is_nil(N.LoginLine({ chars = {} }, {}, WoWMock.now))
+        assert.is_false(N.HasReady({ chars = {} }, {}, WoWMock.now))
     end)
 
     it("builds the settings with the threshold, the notice switches and the characters", function()
@@ -268,5 +267,58 @@ describe("Workshop: concentration and cooldowns", function()
         local fresh = P.Expansions({ chars = {} })                    -- before any window: the client's names
         assert.equals("Midnight", fresh[1])
         for _, name in ipairs(fresh) do assert.are_not.equal("Expansion 12", name) end
+    end)
+    it("lists every character in the overview window with bars and cooldown chips", function()
+        local Popup = wns.ProfessionPopup
+        local now = WoWMock.now
+        local overview = {
+            { key = "Alt-Realm", name = "Alt", professions = { { id = 1, name = "Alchemy", current = 1000, max = 1000,
+                fullAt = now - 10 } }, cooldowns = { { recipeID = 700, name = "Transmute", readyAt = now - 5, count = 1 },
+                { recipeID = 701, name = "Flask", readyAt = now + 600, count = 1 },
+                { recipeID = 702, name = "Potion", readyAt = now + 900, count = 1 } } },
+            { key = "Main-Realm", name = "Main", professions = { { id = 2, name = "Tailoring", current = 300, max = 1000,
+                fullAt = now + 3600 } }, cooldowns = {} },
+            { key = "Empty-Realm", name = "Empty", professions = {}, cooldowns = {} },
+        }
+        local rows = Popup.Rows(overview, now)
+        local kinds = {}
+        for _, r in ipairs(rows) do kinds[#kinds + 1] = r.kind end
+        assert.same({ "char", "profession", "cooldowns", "cooldowns", "char", "profession" }, kinds)
+        assert.equals(2, rows[1].ready)
+        assert.equals(now + 600, rows[1].dueAt)
+        assert.equals(2, #rows[3].cooldowns)
+        assert.equals(1, #rows[4].cooldowns)
+        assert.equals(0, rows[5].ready)
+        assert.equals(now + 3600, rows[5].dueAt)
+        assert.is_true(Popup.Height(40) == Popup.Height(14) and Popup.Height(0) == Popup.Height(1))
+
+        char().professions = { [2900] = { name = "Alchemy", amount = 1000, max = 1000, cycleSec = 360, readAt = now } }
+        char().cooldowns = { [700] = { name = "Transmute", readyAt = now - 1 } }
+        Popup.Open()
+        assert.is_true(Popup.IsOpen())
+        local frame = _G.GoblinomicsProfessionPopup
+        assert.equals(3, #frame.rows)
+        Popup.Toggle()
+        assert.is_false(Popup.IsOpen())
+    end)
+
+    it("waits with the overview window until the fight is over", function()
+        local Popup = wns.ProfessionPopup
+        WoWMock.combat = true
+        Popup.Open()
+        assert.is_false(Popup.IsOpen())
+        WoWMock.combat = false
+        WoWMock.fire("PLAYER_REGEN_ENABLED")
+        assert.is_true(Popup.IsOpen())
+    end)
+
+    it("does not open the overview at login when it is switched off", function()
+        local root = GoblinomicsWorkshopDB
+        root.settings.notifyChat = false
+        root.chars["Alt-Realm"] = { name = "Alt", professions = { [2901] = { name = "Blacksmithing", amount = 1000,
+            max = 1000, cycleSec = 360, readAt = WoWMock.now } } }
+        WoWMock.advance(7)
+        WoWMock.flush()
+        assert.is_false(wns.ProfessionPopup.IsOpen())
     end)
 end)

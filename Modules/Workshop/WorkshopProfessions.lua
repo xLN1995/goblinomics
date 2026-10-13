@@ -21,6 +21,7 @@ local function ClassColor(class)
     local c = class and RAID_CLASS_COLORS and RAID_CLASS_COLORS[class]
     return c and c.colorStr or "ffffffff"
 end
+View.ClassColor = ClassColor
 
 --- "full" / "full in 3h 12m" style text for a due time.
 function View.DueText(at, now, readyText, inText)

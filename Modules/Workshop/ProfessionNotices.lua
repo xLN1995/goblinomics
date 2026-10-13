@@ -4,7 +4,7 @@ if GOBLINOMICS_CLIENT_BLOCKED then return end
 -- switchable in the settings:
 --   toast    while you play, when a character's concentration reaches the
 --            threshold or a cooldown is ready; one timer for the next due entry
---   chat     one line after login with everything that is full or ready
+--   login    the overview window (ProfessionPopup) when something is full or ready
 --   tooltip  a line in the minimap / LDB tooltip: how many are due, the next one
 -- An entry is toasted once per due time (root.professionNotices[id] = at).
 local _, ns = ...
@@ -72,30 +72,18 @@ function Notices.Schedule()
     end)
 end
 
---- Chat line after login: everything full or ready; nothing when nothing is due.
-function Notices.LoginLine(root, settings, now)
-    local API, L = ns.API, ns.L
-    local full, ready = {}, {}
+--- Is anything full or ready at time now?
+function Notices.HasReady(root, settings, now)
     for _, d in ipairs(ns.Professions.Due(root, settings, now)) do
-        if d.at <= now then
-            local list = d.kind == "cooldown" and ready or full
-            list[#list + 1] = Label(d)
-        end
+        if d.at <= now then return true end
     end
-    local parts = {}
-    if #full > 0 then parts[#parts + 1] = API.Lf("Concentration full: %s", table.concat(full, ", ")) end
-    if #ready > 0 then parts[#parts + 1] = API.Lf("Ready: %s", table.concat(ready, ", ")) end
-    if #parts == 0 then return nil end
-    return L["Workshop"] .. " - " .. table.concat(parts, "; ")
+    return false
 end
 
 local function OnLogin()
     local root, settings, now = Root(), Settings(), time()
-    if settings.notifyChat then
-        local line = Notices.LoginLine(root, settings, now)
-        if line then ns.API.Print(line) end
-    end
-    -- what is due already was reported in chat; toasts are for what becomes due later
+    if settings.notifyChat and Notices.HasReady(root, settings, now) then ns.ProfessionPopup.Open() end
+    -- what is due already is shown in the overview; toasts are for what becomes due later
     for _, d in ipairs(Notices.Pending(root, settings, now)) do root.professionNotices[d.id] = d.at end
     Notices.Schedule()
 end

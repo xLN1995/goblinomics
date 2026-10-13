@@ -33,4 +33,5 @@ WorkshopSummary.lua
 WorkshopRecipes.lua
 WorkshopDetail.lua
 WorkshopProfessions.lua
+ProfessionPopup.lua
 WorkshopPulse.lua

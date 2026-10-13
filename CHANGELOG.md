@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+- After login, concentration and cooldowns are no longer listed in chat. A
+  small window opens instead, with every character's concentration as a bar
+  and its recipe cooldowns (ready, or the time left). It only opens when
+  something is full or ready, and it waits until you are out of combat.
+  `/gob conc` opens and closes it at any time.
+
 ## [1.0.2] - 2026-10-04
 
 ### Fixed
