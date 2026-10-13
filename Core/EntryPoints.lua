@@ -158,6 +158,8 @@ end
 BINDING_CATEGORY_GOBLINOMICS = "Goblinomics"
 BINDING_HEADER_GOBLINOMICS = "Goblinomics"
 BINDING_NAME_GOBLINOMICS_TOGGLE = "Open or close the main window"
+BINDING_NAME_GOBLINOMICS_FARM_HUD = "Farm HUD on or off"
+BINDING_NAME_GOBLINOMICS_FARM_SKIP = "Farm HUD: skip the next stop"
 
 -------------------------------------------------------------------------------
 -- LDB feed and minimap button
@@ -266,6 +268,8 @@ end
 -------------------------------------------------------------------------------
 function EntryPoints.OnCoreLoaded()
     BINDING_NAME_GOBLINOMICS_TOGGLE = L["Open or close the main window"]
+    BINDING_NAME_GOBLINOMICS_FARM_HUD = L["Farm HUD on or off"]
+    BINDING_NAME_GOBLINOMICS_FARM_SKIP = L["Farm HUD: skip the next stop"]
 end
 
 function EntryPoints.OnLogin()

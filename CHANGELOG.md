@@ -27,6 +27,14 @@
   on the zone map with its length and an estimated lap time. The route is
   saved with the farm and marked as out of date when the zone or the nodes
   change.
+- A full-screen farm HUD for farms with a route: a radar around you, turned
+  with your view, shows the farm's nodes, the stops and lines to the next two
+  stops. A side panel (left or right) shows time, gold, nodes, your best items
+  and the distance and time to the next stops. You join the round at the
+  nearest stop; reaching one of the next stops moves on. Switch it with a key
+  binding or `/gob farm hud`, skip a stop with another key or
+  `/gob farm skip`. It can also show up by itself (setting, off by default)
+  and hides in combat, in instances and outside the farm's zone.
 
 ### Changed
 - After login, concentration and cooldowns are no longer listed in chat. A

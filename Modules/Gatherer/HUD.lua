@@ -131,7 +131,8 @@ end
 
 function HUD.Refresh()
     local s = ns.Session.Active()
-    if not s or s.hudHidden then
+    -- the full-screen farm HUD replaces it while shown
+    if not s or s.hudHidden or (ns.FarmHUD and ns.FarmHUD.IsShown()) then
         StopTicker()
         if frame then frame:Hide() end
         return

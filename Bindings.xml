@@ -2,4 +2,12 @@
 	<Binding name="GOBLINOMICS_TOGGLE" header="GOBLINOMICS" category="BINDING_CATEGORY_GOBLINOMICS">
 		Goblinomics.API.v1.UI:Toggle()
 	</Binding>
+	<Binding name="GOBLINOMICS_FARM_HUD" category="BINDING_CATEGORY_GOBLINOMICS">
+		local g = Goblinomics.API.v1.Gatherer
+		if g and g.ToggleFarmHUD then g.ToggleFarmHUD() end
+	</Binding>
+	<Binding name="GOBLINOMICS_FARM_SKIP" category="BINDING_CATEGORY_GOBLINOMICS">
+		local g = Goblinomics.API.v1.Gatherer
+		if g and g.SkipStop then g.SkipStop() end
+	</Binding>
 </Bindings>

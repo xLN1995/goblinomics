@@ -1,6 +1,7 @@
 if GOBLINOMICS_CLIENT_BLOCKED then return end
 -- Modules/Gatherer/Commands.lua
--- /gob farm start [name] | pause | resume | stop | hud
+-- /gob farm start [name] | pause | resume | stop | hud | skip
+-- hud switches the full-screen HUD for a farm with a route, else the small one.
 local _, ns = ...
 
 local Commands = {}
@@ -43,16 +44,22 @@ function Commands.Run(arg)
     elseif verb == "hud" then
         if not Session.Active() then
             Print(L["No active session."])
+        elseif ns.FarmHUD.Toggle() then
+            if ns.FarmHUD.Wanted() and not ns.FarmHUD.IsShown() then
+                Print(L["The farm HUD shows up in the farm's zone, out of combat and outside instances."])
+            end
         elseif ns.HUD.IsShown() then
             ns.HUD.HideForSession()
         else
             ns.HUD.ShowForSession()
         end
+    elseif verb == "skip" then
+        if not ns.FarmHUD.Skip() then Print(L["No route is being followed."]) end
     else
-        Print("/gob farm start [" .. L["farm name"] .. "] | pause | resume | stop | hud | instances")
+        Print("/gob farm start [" .. L["farm name"] .. "] | pause | resume | stop | hud | skip | instances")
     end
 end
 
 function Commands.Enable()
-    ns.API.RegisterCommand("farm", Commands.Run, ns.L["start [name] | pause | resume | stop | hud - farm sessions"])
+    ns.API.RegisterCommand("farm", Commands.Run, ns.L["start [name] | pause | resume | stop | hud | skip - farm sessions"])
 end

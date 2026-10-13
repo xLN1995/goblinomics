@@ -133,6 +133,7 @@ function mock.reset()
     mock.mapID = nil         -- uiMapID of the player
     mock.mapPos = nil        -- { x, y } on that map
     mock.facing = 0
+    mock.inInstance = false
     mock.maps = {}           -- maps[uiMapID] = { name, continent, left, top, width, height } (world yards)
     mock.mapArt = {}         -- mapArt[uiMapID] = { layer = { layerWidth, layerHeight, tileWidth, tileHeight }, textures }
     if InstallHookables then InstallHookables() end
@@ -505,6 +506,7 @@ _G.C_Map = {
     end,
 }
 _G.GetPlayerFacing = function() return mock.facing end
+_G.IsInInstance = function() return mock.inInstance == true end
 
 _G.issecretvalue = function(v)
     return v ~= nil and mock.secrets[v] == true

@@ -66,6 +66,8 @@ local Gatherer = API.RegisterModule(ADDON_NAME, {
             specialSound = "kit:UI_LEGENDARY_LOOT_TOAST",   -- mounts and legendary items
             autoPauseMinutes = 0,        -- 0 = off
             hudLocked = false,
+            farmHudAuto = false,         -- full-screen HUD shown by itself for farms with a route
+            farmHudSide = "left",        -- its side panel: "left" or "right"
         },
         charDefaults = {},
     },
@@ -75,6 +77,11 @@ ns.Gatherer = Gatherer
 -- No Mythic+ category: keys drop loot only at the end, they are never farm runs.
 -- Public, read-only: stored session summaries since a time (Insights).
 API.Gatherer = {
+    -- key bindings: the full-screen farm HUD and its skip key
+    ToggleFarmHUD = function()
+        if ns.FarmHUD and not ns.FarmHUD.Toggle() and ns.Commands then ns.Commands.Run("hud") end
+    end,
+    SkipStop = function() if ns.FarmHUD then ns.FarmHUD.Skip() end end,
     Summaries = function(_, from)
         local list = {}
         local root = Gatherer.db and Gatherer.db.root
@@ -106,7 +113,8 @@ function ns.IsInstanceCategory(category)
     return category == "dungeon" or category == "raid"
 end
 
-local PARTS = { "Farms", "Session", "NodeTracker", "Highlights", "Lockouts", "Strings", "HUD", "Commands", "GathererUI", "RouteView" }
+local PARTS = { "Farms", "Session", "NodeTracker", "Highlights", "Lockouts", "Strings", "HUD", "FarmHUD", "Commands",
+    "GathererUI", "RouteView" }
 
 function Gatherer:OnInit()
     local root = self.db.root

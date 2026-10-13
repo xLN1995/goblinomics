@@ -16,11 +16,13 @@ Valuation.lua
 Session.lua
 NodeTracker.lua
 Route.lua
+RouteFollow.lua
 Highlights.lua
 Lockouts.lua
 Strings.lua
 TextDialog.lua
 HUD.lua
+FarmHUD.lua
 Summary.lua
 Commands.lua
 FarmEditor.lua

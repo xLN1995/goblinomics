@@ -535,6 +535,20 @@ local function BuildSettings(parent, y)
     form:Toggle({ label = L["Lock the HUD"], description = L["The session HUD can no longer be moved."],
         get = function() return settings.hudLocked end,
         set = function(on) settings.hudLocked = on end })
+    form:Toggle({ label = L["Show the farm HUD by itself"],
+        description = L["For farms with a route, as soon as a session runs in their zone. Otherwise by hotkey or /gob farm hud."],
+        get = function() return settings.farmHudAuto end,
+        set = function(on)
+            settings.farmHudAuto = on
+            ns.FarmHUD.Refresh()
+        end })
+    form:Segmented({ label = L["Farm HUD side panel"], description = L["Where the panel with time, gold and the next stops sits."],
+        options = { { value = "left", label = L["Left"] }, { value = "right", label = L["Right"] } },
+        get = function() return settings.farmHudSide end,
+        set = function(v)
+            settings.farmHudSide = v
+            ns.FarmHUD.Refresh()
+        end })
 
     form:Group(L["Watchlist"], L["Items on the watchlist always get a notification, whatever their value."])
     local listText

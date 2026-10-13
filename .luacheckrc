@@ -34,6 +34,8 @@ globals = {
     "BINDING_CATEGORY_GOBLINOMICS",
     "BINDING_HEADER_GOBLINOMICS",
     "BINDING_NAME_GOBLINOMICS_TOGGLE",
+    "BINDING_NAME_GOBLINOMICS_FARM_HUD",
+    "BINDING_NAME_GOBLINOMICS_FARM_SKIP",
     "Goblinomics_OnAddonCompartmentEnter",
     "Goblinomics_OnAddonCompartmentLeave",
     "SlashCmdList",
@@ -75,7 +77,7 @@ read_globals = {
     "C_AddOns", "C_Timer", "C_Container", "C_Bank", "C_Item", "C_Mail",
     "C_TradeSkillUI", "C_RestrictedActions", "C_PlayerInfo", "C_AuctionHouse",
     "C_CurrencyInfo", "C_Secrets", "C_Spell", "GetServerExpansionLevel", "ProfessionsFrame", "C_ChallengeMode", "C_EventUtils", "C_AddOnProfiler", "Enum",
-    "C_Map", "CreateVector2D", "GetPlayerFacing",
+    "C_Map", "CreateVector2D", "GetPlayerFacing", "IsInInstance",
     -- Libraries
     "LibStub",
     -- GlobalStrings
