@@ -10,6 +10,7 @@ if GOBLINOMICS_CLIENT_BLOCKED then return end
 --             chat line up to 5 s after the money moves an unexplained gain to loot
 --   realized  every character money change except warband transfers
 --   repair    durability points used x copper per point (learned at a merchant)
+--   nodes     gathering nodes (NodeTracker), in total and per node
 -- Duration excludes pauses. With auto-pause the idle minutes before the pause do
 -- not count either. The session lives in db.char.active and survives /reload; at
 -- logout it pauses and resumes on the next login within RESUME_GRACE seconds.
@@ -195,6 +196,7 @@ function Session.Stop()
         items = items, links = links, values = values, market = v.market, vendor = v.vendor, speculative = v.speculative,
         rawGold = v.rawGold, repair = v.repair, total = v.total, gph = v.gph, realized = v.realized,
         repairKnown = Session.RepairRate() ~= nil,
+        nodes = s.nodes and s.nodes.total > 0 and CopyTable(s.nodes) or nil,
     }
     ns.Farms.AddSummary(summary)
     module.db.char.active = nil
@@ -239,6 +241,7 @@ local function OnLoot(_, p)
     s.items[p.itemKey] = (s.items[p.itemKey] or 0) + p.quantity
     s.links[p.itemKey] = s.links[p.itemKey] or p.link
     Activity()
+    if ns.NodeTracker then ns.NodeTracker.OnLoot(p) end
     if ns.Highlights and ns.Highlights.OnLoot then ns.Highlights.OnLoot(p) end
     Emit("update")
 end

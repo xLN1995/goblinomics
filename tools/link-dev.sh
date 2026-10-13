@@ -25,6 +25,7 @@ PAIRS=(
     "Goblinomics_Connector_TSM:Connectors/TSM"
     "Goblinomics_Connector_Auctionator:Connectors/Auctionator"
     "Goblinomics_Connector_CraftSim:Connectors/CraftSim"
+    "Goblinomics_Connector_GatherMate2:Connectors/GatherMate2"
 )
 
 if [[ ! -d "$ADDONS" ]]; then

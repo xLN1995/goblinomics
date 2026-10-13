@@ -25,7 +25,8 @@ A `/reload` is not enough for new addon folders.
 
 You need WoW Retail 12.1 or newer. Install **TradeSkillMaster or Auctionator** as
 well, otherwise Goblinomics only knows vendor prices and your wealth will look
-sad. CraftSim is optional and helps with craft costs.
+sad. CraftSim is optional and helps with craft costs. GatherMate2 is optional too:
+with it, gathering farms know their zone and nodes.
 
 ## First steps
 

@@ -2,8 +2,10 @@ if GOBLINOMICS_CLIENT_BLOCKED then return end
 -- Modules/Gatherer/Farms.lua
 -- Farm definitions (name, category, raid or dungeon from the Encounter Journal,
 -- highlight threshold, expected highlights: items that always notify the player
--- when looted in a session of this farm) and their statistics from the stored
--- session summaries (runs, average and best GPH, last run).
+-- when looted in a session of this farm; for gathering and fishing a zone and the
+-- nodes farmed there, several at once) and their statistics from the stored
+-- session summaries (runs, average and best GPH, last run, nodes per hour and gold
+-- per node).
 local _, ns = ...
 
 local Farms = {}
@@ -26,6 +28,26 @@ function Farms.CleanInstance(value)
     }
 end
 
+--- Gathering and fishing farms can have a zone and nodes.
+function Farms.HasNodes(category) return category == "gathering" or category == "fishing" end
+
+--- { { type, id } } from a spec value, without duplicates; nil when empty.
+function Farms.CleanNodes(value)
+    if type(value) ~= "table" then return nil end
+    local out, seen = {}, {}
+    for _, n in ipairs(value) do
+        local t, id = type(n) == "table" and n.type, type(n) == "table" and tonumber(n.id)
+        if type(t) == "string" and t ~= "" and id and not seen[t .. ":" .. id] then
+            seen[t .. ":" .. id] = true
+            out[#out + 1] = { type = t:sub(1, 40), id = id }
+        end
+    end
+    return #out > 0 and out or nil
+end
+
+--- "type:id" key of a node.
+function Farms.NodeKey(nodeType, id) return nodeType .. ":" .. id end
+
 local function Clean(spec, farm)
     farm = farm or {}
     if spec.name ~= nil then farm.name = strtrim(tostring(spec.name)) end
@@ -44,6 +66,12 @@ local function Clean(spec, farm)
     if spec.instance ~= nil then
         farm.instance = Farms.CleanInstance(spec.instance)
     end
+    if spec.zone ~= nil then
+        local zone = tonumber(spec.zone)
+        farm.zone = (zone and zone > 0) and zone or nil
+    end
+    if spec.nodes ~= nil then farm.nodes = Farms.CleanNodes(spec.nodes) end
+    if not Farms.HasNodes(farm.category) then farm.zone, farm.nodes = nil, nil end
     -- only raid and dungeon farms have an instance, and it must be of that kind
     local inst = farm.instance
     if inst and (not ns.IsInstanceCategory(farm.category) or inst.isRaid ~= (farm.category == "raid")) then
@@ -139,20 +167,35 @@ function Farms.History(id)
     return Root().history[id or AD_HOC] or {}
 end
 
---- { runs, avgGPH, bestGPH, lastRun, totalDuration, total } over the stored summaries.
+--- { runs, avgGPH, bestGPH, lastRun, totalDuration, total, nodes, nodeRuns, nodesPerHour,
+-- goldPerNode } over the stored summaries. The node values come only from runs that
+-- counted nodes.
 function Farms.Stats(id)
     local list = Farms.History(id)
-    local stats = { runs = #list, avgGPH = 0, bestGPH = 0, lastRun = nil, totalDuration = 0, total = 0 }
+    local stats = { runs = #list, avgGPH = 0, bestGPH = 0, lastRun = nil, totalDuration = 0, total = 0,
+        nodes = 0, nodeRuns = 0 }
+    local nodeDuration, nodeTotal = 0, 0
     for i = 1, #list do
         local s = list[i]
         stats.totalDuration = stats.totalDuration + (s.duration or 0)
         stats.total = stats.total + (s.total or 0)
+        local n = type(s.nodes) == "table" and s.nodes.total or 0
+        if n > 0 then
+            stats.nodes = stats.nodes + n
+            stats.nodeRuns = stats.nodeRuns + 1
+            nodeDuration = nodeDuration + (s.duration or 0)
+            nodeTotal = nodeTotal + (s.total or 0)
+        end
         if (s.gph or 0) > stats.bestGPH then stats.bestGPH = s.gph end
         if not stats.lastRun or (s.started or 0) > stats.lastRun then stats.lastRun = s.started end
     end
     -- average GPH over the total time, so short runs do not dominate
     if stats.totalDuration > 0 then
         stats.avgGPH = math.floor(stats.total * 3600 / stats.totalDuration + 0.5)
+    end
+    if stats.nodes > 0 then
+        stats.goldPerNode = math.floor(nodeTotal / stats.nodes + 0.5)
+        if nodeDuration > 0 then stats.nodesPerHour = math.floor(stats.nodes * 3600 / nodeDuration + 0.5) end
     end
     return stats
 end

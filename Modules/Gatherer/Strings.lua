@@ -2,7 +2,8 @@ if GOBLINOMICS_CLIENT_BLOCKED then return end
 -- Modules/Gatherer/Strings.lua
 -- Farm and watchlist exchange strings:
 --   !GOB:FARM:2!<data>    one or more farm definitions (without history); version 1
---                         strings (expected items plus a farm watchlist) still import
+--                         strings (expected items plus a farm watchlist) still import.
+--                         Zone and nodes are optional fields: older versions ignore them
 --   !GOB:WATCH:1!<data>   item keys of a watchlist
 -- data = LibDeflate:EncodeForPrint(LibDeflate:CompressDeflate(LibSerialize:Serialize(payload)))
 -- Import checks prefix, version and every field; imported farms get new ids and
@@ -64,7 +65,15 @@ local function FarmPayload(farm)
     return {
         name = farm.name, category = farm.category, expectedHighlights = farm.expectedHighlights,
         instance = farm.instance, highlightThreshold = farm.highlightThreshold,
+        zone = farm.zone, nodes = farm.nodes,
     }
+end
+
+local function Nodes(list)
+    if type(list) ~= "table" then return nil end
+    local out = {}
+    for i = 1, math.min(#list, 50) do out[#out + 1] = list[i] end
+    return ns.Farms.CleanNodes(out) or false
 end
 
 --- Export string of farms (list of farm ids).
@@ -123,6 +132,7 @@ local function ImportFarms(payload, version)
             expectedHighlights = Highlights(f, version),
             instance = Instance(f),
             highlightThreshold = tonumber(f.highlightThreshold),
+            zone = tonumber(f.zone) or false, nodes = Nodes(f.nodes) or false,
         }
     end
     if #specs == 0 then return nil, "format" end

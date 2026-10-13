@@ -1,0 +1,11 @@
+## Interface: 120100, 120105
+## Title: |cff3fbf3fGoblinomics|r GatherMate2 Connector
+## Notes: Gathering nodes for Gatherer farms and routes via GatherMate2
+## Author: xLN
+## Version: @project-version@
+## Category: Goblinomics
+## Group: Goblinomics
+## Dependencies: Goblinomics, GatherMate2
+## IconTexture: Interface\AddOns\Goblinomics\Media\goblinomics_icon_64
+
+GatherMate2.lua
