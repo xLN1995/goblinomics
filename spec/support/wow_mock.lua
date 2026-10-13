@@ -43,7 +43,24 @@ local function NewFrame(frameType, name, parent, template)
         function group:CreateAnimation() return NewFrame("Animation", nil, group) end
         return group
     end
-    function frame:GetPoint() return "CENTER", nil, "CENTER", 0, 0 end
+    function frame:GetPoint(i)
+        local p = self._points[i or 1]
+        if p then return unpack(p) end
+        return "CENTER", nil, "CENTER", 0, 0
+    end
+    function frame:GetNumPoints() return #self._points end
+    function frame:GetParent() return self._parent end
+    local REGIONS = { Texture = true, FontString = true, Line = true }
+    function frame:GetChildren()
+        local out = {}
+        for _, f in ipairs(frames) do if f._parent == self and not REGIONS[f._type] then out[#out + 1] = f end end
+        return unpack(out)
+    end
+    function frame:GetRegions()
+        local out = {}
+        for _, f in ipairs(frames) do if f._parent == self and REGIONS[f._type] then out[#out + 1] = f end end
+        return unpack(out)
+    end
     function frame:SetFrameLevel(level) self._level = level end
     function frame:GetFrameLevel() return self._level or 1 end
     -- as in the client: colours are numbers, a table is an error (Usage: SetColorTexture(r, g, b [, a]))
@@ -134,6 +151,8 @@ function mock.reset()
     mock.mapPos = nil        -- { x, y } on that map
     mock.facing = 0
     mock.inInstance = false
+    mock.cvars = { rotateMinimap = "0" }
+    mock.viewRadius = nil
     mock.maps = {}           -- maps[uiMapID] = { name, continent, left, top, width, height } (world yards)
     mock.mapArt = {}         -- mapArt[uiMapID] = { layer = { layerWidth, layerHeight, tileWidth, tileHeight }, textures }
     if InstallHookables then InstallHookables() end
@@ -507,6 +526,11 @@ _G.C_Map = {
 }
 _G.GetPlayerFacing = function() return mock.facing end
 _G.IsInInstance = function() return mock.inInstance == true end
+_G.C_CVar = {
+    GetCVar = function(name) return mock.cvars[name] end,
+    SetCVar = function(name, value) mock.cvars[name] = tostring(value) end,
+}
+_G.C_Minimap = { GetViewRadius = function() return mock.viewRadius end }
 
 _G.issecretvalue = function(v)
     return v ~= nil and mock.secrets[v] == true

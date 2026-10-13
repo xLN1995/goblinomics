@@ -22,6 +22,7 @@ Lockouts.lua
 Strings.lua
 TextDialog.lua
 HUD.lua
+MinimapRadar.lua
 FarmHUD.lua
 Summary.lua
 Commands.lua

@@ -68,6 +68,7 @@ local Gatherer = API.RegisterModule(ADDON_NAME, {
             hudLocked = false,
             farmHudAuto = false,         -- full-screen HUD shown by itself for farms with a route
             farmHudSide = "left",        -- its side panel: "left" or "right"
+            farmHudMinimap = true,       -- lend it the minimap: its blips show the nodes standing now
         },
         charDefaults = {},
     },

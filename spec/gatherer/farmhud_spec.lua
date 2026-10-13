@@ -161,6 +161,67 @@ describe("Gatherer: farm HUD", function()
             assert.is_false(small.farmHud:IsShown())
         end)
 
+        describe("with the minimap", function()
+            local cluster, button
+
+            before_each(function()
+                cluster = CreateFrame("Frame", "MinimapCluster", UIParent)
+                local mm = CreateFrame("Minimap", "Minimap", cluster)
+                mm:SetPoint("TOPRIGHT", cluster, "TOPRIGHT", -10, -20)
+                local zoom, alpha = 3, 1
+                function mm.SetZoom(_, z) zoom = z end
+                function mm.GetZoom() return zoom end
+                function mm.SetAlpha(_, a) alpha = a end
+                function mm.GetAlpha() return alpha end
+                _G.Minimap = mm
+                button = CreateFrame("Button", "SomeMinimapButton", mm)
+                button:SetPoint("CENTER", Minimap, "BOTTOMLEFT", 5, 5)
+                WoWMock.viewRadius = 233
+            end)
+
+            after_each(function() _G.Minimap = nil end)
+
+            it("lends the minimap to the radar and gives it back as it was", function()
+                Session.Start(farm.id)
+                FarmHUD.Toggle()
+                local f = hud()
+                assert.is_true(pns.MinimapRadar.IsLent())
+                assert.equals(f.radar, Minimap:GetParent())
+                assert.same({ 0, 0, "1" }, { Minimap:GetZoom(), Minimap:GetAlpha(), WoWMock.cvars.rotateMinimap })
+                assert.equals(233, f.yards)
+                assert.is_false(f.player:IsShown())
+                assert.is_true(button:GetParent() ~= Minimap)                  -- waits on the hidden stand-in
+                Minimap:SetZoom(4)                                              -- someone zooms: kept at 0
+                assert.equals(0, Minimap:GetZoom())
+                FarmHUD.Toggle()
+                assert.is_false(pns.MinimapRadar.IsLent())
+                assert.equals(cluster, Minimap:GetParent())
+                assert.same({ "TOPRIGHT", cluster, "TOPRIGHT", -10, -20 }, { Minimap:GetPoint(1) })
+                assert.same({ 3, 1, "0" }, { Minimap:GetZoom(), Minimap:GetAlpha(), WoWMock.cvars.rotateMinimap })
+                assert.equals(Minimap, button:GetParent())
+                assert.same({ "CENTER", Minimap, "BOTTOMLEFT", 5, 5 }, { button:GetPoint(1) })
+            end)
+
+            it("gives the minimap back in combat, at logout and when switched off", function()
+                Session.Start(farm.id)
+                FarmHUD.Toggle()
+                WoWMock.combat = true
+                WoWMock.fire("PLAYER_REGEN_DISABLED")
+                assert.is_false(pns.MinimapRadar.IsLent())
+                WoWMock.combat = false
+                WoWMock.fire("PLAYER_REGEN_ENABLED")
+                assert.is_true(pns.MinimapRadar.IsLent())
+                WoWMock.fire("PLAYER_LOGOUT")
+                assert.equals("0", WoWMock.cvars.rotateMinimap)
+                FarmHUD.Refresh()
+                pns.Gatherer.db.settings.farmHudMinimap = false   -- the saved copy was replaced at logout
+                FarmHUD.UseMinimap()
+                assert.is_false(pns.MinimapRadar.IsLent())
+                assert.equals(300, hud().yards)
+                assert.is_true(hud().player:IsShown())
+            end)
+        end)
+
         it("switches the HUD with /gob farm hud and skips with /gob farm skip", function()
             Session.Start(farm.id)
             pns.Commands.Run("hud")

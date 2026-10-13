@@ -1,8 +1,9 @@
 if GOBLINOMICS_CLIENT_BLOCKED then return end
 -- Modules/Gatherer/FarmHUD.lua
 -- Full-screen farm HUD for a session of a farm with a route. A see-through overlay
--- (clicks pass through): in the middle a radar of RADAR_YARDS around the player,
--- turned with the facing - the farm's known nodes as dots, the stops (clusters
+-- (clicks pass through): in the middle a radar around the player, turned with the
+-- facing. Under it Blizzard's minimap (MinimapRadar, setting on by default): its
+-- tracking blips show the nodes that stand right now. On top the farm's known nodes as dots, the stops (clusters
 -- larger) and lines along the next three stops, thinner further ahead. A side
 -- panel (left or right, setting) shows farm, time, gold, GPH, nodes, the three most
 -- valuable items and the next three stops with distance and time to reach them.
@@ -16,7 +17,7 @@ local FarmHUD = {}
 ns.FarmHUD = FarmHUD
 
 local TICK = 1 / 15
-local RADAR_YARDS = 300
+local RADAR_YARDS = 300   -- without the minimap; with it the minimap's view radius
 local RING_SEGMENTS = 48
 local PANEL_W = 240
 local TOP_ITEMS = 3
@@ -170,25 +171,29 @@ local function Build()
     local size = math.floor(screenH * 0.6)
     f.radar:SetSize(size, size)
     f.radius = size / 2
+    f.yards = RADAR_YARDS
+    -- our drawing sits on a frame above the lent minimap
+    f.overlay = CreateFrame("Frame", nil, f.radar)
+    f.overlay:SetAllPoints(f.radar)
+    f.overlay:EnableMouse(false)
     -- ring
     for i = 1, RING_SEGMENTS do
         local a1, a2 = (i - 1) / RING_SEGMENTS * 2 * math.pi, i / RING_SEGMENTS * 2 * math.pi
-        local line = f.radar:CreateLine(nil, "BACKGROUND")
+        local line = f.overlay:CreateLine(nil, "BACKGROUND")
         line:SetThickness(1.5)
         line:SetColorTexture(C.border[1], C.border[2], C.border[3], 0.8)
         line:SetStartPoint("CENTER", f.radar, math.cos(a1) * f.radius, math.sin(a1) * f.radius)
         line:SetEndPoint("CENTER", f.radar, math.cos(a2) * f.radius, math.sin(a2) * f.radius)
     end
-    f.player = W.Chevron(f.radar, "up", 14)
+    f.player = W.Chevron(f.overlay, "up", 14)
     f.player:SetPoint("CENTER")
     f.player:SetColor(C.text)
-    f.scaleLabel = Theme.Text(f.radar, 10, C.textDim)
+    f.scaleLabel = Theme.Text(f.overlay, 10, C.textDim)
     f.scaleLabel:SetPoint("TOP", f.radar, "BOTTOM", 0, -4)
-    f.scaleLabel:SetText(RADAR_YARDS .. " yd")
-    f.dots = Pool(function() return f.radar:CreateTexture(nil, "ARTWORK") end)
-    f.stops = Pool(function() return f.radar:CreateTexture(nil, "OVERLAY") end)
-    f.labels = Pool(function() return Theme.Text(f.radar, 10, C.text) end)
-    f.lines = Pool(function() return f.radar:CreateLine(nil, "ARTWORK") end)
+    f.dots = Pool(function() return f.overlay:CreateTexture(nil, "ARTWORK") end)
+    f.stops = Pool(function() return f.overlay:CreateTexture(nil, "OVERLAY") end)
+    f.labels = Pool(function() return Theme.Text(f.overlay, 10, C.text) end)
+    f.lines = Pool(function() return f.overlay:CreateLine(nil, "ARTWORK") end)
     f.panel = BuildPanel(f)
     return f
 end
@@ -205,8 +210,8 @@ end
 local function RadarPoint(x, y, px, py, facing, width, height)
     local rx, ry = ns.RouteFollow.Project((x - px) * width, (y - py) * height, facing)
     local d = math.sqrt(rx * rx + ry * ry)
-    local scale = frame.radius / RADAR_YARDS
-    if d > RADAR_YARDS then
+    local scale = frame.radius / frame.yards
+    if d > frame.yards then
         return rx / d * frame.radius, ry / d * frame.radius, false
     end
     return rx * scale, ry * scale, true
@@ -231,9 +236,11 @@ end
 
 local function DrawRadar(route, state, px, py, facing, width, height)
     local C = ns.API.Theme.colors
+    -- known nodes; with the minimap's blips (the ones standing now) they step back
+    local known = ns.MinimapRadar.IsLent() and 0.35 or 0.8
     for _, p in ipairs(points or {}) do
         local x, y, inside = RadarPoint(p.x, p.y, px, py, facing, width, height)
-        if inside then Dot(frame.dots, x, y, 3, C.textDim, 0.8) end
+        if inside then Dot(frame.dots, x, y, 3, C.textDim, known) end
     end
     frame.dots:Finish()
     local Follow = ns.RouteFollow
@@ -384,6 +391,7 @@ function FarmHUD.Refresh()
         PlacePanel()
         local wasShown = frame:IsShown()
         frame:Show()
+        if not wasShown then FarmHUD.UseMinimap() end
         if not wasShown then
             elapsed, clock = TICK, 0
             frame:SetScript("OnUpdate", OnUpdate)
@@ -393,9 +401,23 @@ function FarmHUD.Refresh()
     elseif frame and frame:IsShown() then
         frame:SetScript("OnUpdate", nil)
         frame:Hide()
+        ns.MinimapRadar.Return()
     end
     if not show and FarmHUD.Wanted() then WatchLater() end
     if ns.HUD then ns.HUD.Refresh() end
+end
+
+--- Lend the minimap to the radar (setting) and match the radar's scale to it.
+function FarmHUD.UseMinimap()
+    local Radar = ns.MinimapRadar
+    Radar.Return()
+    frame.yards = RADAR_YARDS
+    if Settings().farmHudMinimap ~= false and Radar.Lend(frame.radar, frame.radius * 2) then
+        frame.yards = Radar.ViewRadius()
+        frame.overlay:SetFrameLevel((Minimap:GetFrameLevel() or 1) + 10)
+    end
+    frame.player:SetShown(not Radar.IsLent())   -- the minimap draws its own arrow
+    frame.scaleLabel:SetText(math.floor(frame.yards + 0.5) .. " yd")
 end
 
 function FarmHUD.IsShown() return frame ~= nil and frame:IsShown() end
@@ -447,6 +469,8 @@ function FarmHUD.Enable(m)
     m:RegisterEvent("PLAYER_REGEN_DISABLED", function() FarmHUD.Refresh() end, "FarmHUD")
     m:RegisterEvent("PLAYER_REGEN_ENABLED", function() FarmHUD.Refresh() end, "FarmHUD")
     m:RegisterEvent("ZONE_CHANGED_NEW_AREA", function() FarmHUD.Refresh() end, "FarmHUD")
+    -- the minimap's rotation is a saved setting: give it back before it is saved
+    m:RegisterEvent("PLAYER_LOGOUT", function() ns.MinimapRadar.Return() end, "FarmHUD")
     FarmHUD.Refresh()
 end
 
@@ -456,6 +480,7 @@ function FarmHUD.Disable()
         frame:SetScript("OnUpdate", nil)
         frame:Hide()
     end
+    ns.MinimapRadar.Return()
     if ns.API then
         local OWNER = "Goblinomics_Gatherer.FarmHUD"
         ns.API.Off("GATHERER_SESSION", OWNER)

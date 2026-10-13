@@ -542,6 +542,13 @@ local function BuildSettings(parent, y)
             settings.farmHudAuto = on
             ns.FarmHUD.Refresh()
         end })
+    form:Toggle({ label = L["Minimap in the farm HUD"],
+        description = L["The minimap's tracking points, enlarged: the nodes standing now. Needs Find Herbs or Find Minerals."],
+        get = function() return settings.farmHudMinimap ~= false end,
+        set = function(on)
+            settings.farmHudMinimap = on
+            if ns.FarmHUD.IsShown() then ns.FarmHUD.UseMinimap() end
+        end })
     form:Segmented({ label = L["Farm HUD side panel"], description = L["Where the panel with time, gold and the next stops sits."],
         options = { { value = "left", label = L["Left"] }, { value = "right", label = L["Right"] } },
         get = function() return settings.farmHudSide end,
