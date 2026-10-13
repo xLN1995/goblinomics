@@ -168,6 +168,51 @@ describe("Gatherer: routes", function()
         end)
     end)
 
+    describe("pruning and smoothing", function()
+        it("leaves out a lone stop far off the round", function()
+            local stops = { { x = 0, y = 0, n = 5 }, { x = 100, y = 0, n = 5 }, { x = 100, y = 100, n = 5 },
+                { x = 0, y = 100, n = 5 }, { x = 50, y = 2000, n = 1 } }
+            local tour, dropped = Route.PruneOutliers(stops, { 1, 2, 3, 5, 4 })
+            assert.same({ 1, 2, 3, 4 }, tour)
+            assert.equals(1, dropped)
+            -- a dense stop on the way stays
+            stops[5] = { x = 50, y = 150, n = 5 }
+            assert.equals(5, #Route.PruneOutliers(stops, { 1, 2, 3, 5, 4 }))
+        end)
+
+        it("drops a stop whose nodes the line passes anyway", function()
+            local points = { { x = 0, y = 0 }, { x = 100, y = 5 }, { x = 200, y = 0 }, { x = 200, y = 300 }, { x = 0, y = 300 } }
+            local stops = {}
+            for i, p in ipairs(points) do stops[i] = { x = p.x, y = p.y, n = 1, members = { i } } end
+            local tour = Route.Shortcut(stops, { 1, 2, 3, 4, 5 }, points, 20)
+            assert.same({ 1, 3, 4, 5 }, tour)
+            assert.equals(2, stops[1].n + stops[3].n - 1)   -- its node counts for a neighbour
+        end)
+
+        it("trades a few yards for fewer sharp turns, never more than the slack", function()
+            local stops = {}
+            local rnd = Rng(5)
+            for i = 1, 40 do stops[i] = { x = rnd() * 1500, y = rnd() * 1500 } end
+            local function Turning(order)
+                local sum, n = 0, #order
+                for k = 1, n do
+                    local u, v, w = stops[order[(k - 2) % n + 1]], stops[order[k]], stops[order[k % n + 1]]
+                    local ax, ay, bx, by = v.x - u.x, v.y - u.y, w.x - v.x, w.y - v.y
+                    local c = (ax * bx + ay * by) / (math.sqrt(ax * ax + ay * ay) * math.sqrt(bx * bx + by * by))
+                    sum = sum + math.acos(math.max(-1, math.min(1, c)))
+                end
+                return sum
+            end
+            local order = Route.Optimize(stops)
+            local length, turning = Route.Length(stops, order), Turning(order)
+            Route.Smooth(stops, order, 167)
+            assert.is_true(IsPermutation(order, 40))
+            -- length plus the turn penalty went down; turning itself did not grow
+            assert.is_true(Route.Length(stops, order) + 0.25 * 167 * Turning(order) <= length + 0.25 * 167 * turning + 1e-6)
+            assert.is_true(Turning(order) <= turning + 1e-6)
+        end)
+    end)
+
     describe("building", function()
         local pns
 
@@ -190,7 +235,7 @@ describe("Gatherer: routes", function()
             local nodes = { { type = "Mining", id = 1250 }, { type = "Mining", id = 1249 } }
             local route = Route.Build(2395, nodes)
             assert.equals(2395, route.zone)
-            assert.equals(15, route.radius)
+            assert.equals(167, route.radius)                       -- half the minimap's view radius
             assert.equals("Mining:1249,Mining:1250", route.nodes)
             assert.equals(120, route.nodeCount)
             local total = 0
@@ -198,7 +243,7 @@ describe("Gatherer: routes", function()
                 total = total + s.n
                 assert.is_true(s.x >= 0 and s.x <= 1 and s.y >= 0 and s.y <= 1)
             end
-            assert.equals(120, total)
+            assert.equals(120, total + route.dropped)              -- every node is covered or left out
             assert.is_true(route.length > 0)
             assert.equals(math.floor(route.length / 30 + 0.5), Route.LapSeconds(route))
             assert.same({ nil, "nodes" }, { Route.Build(2395, { { type = "Mining", id = 9 } }) })
