@@ -155,6 +155,22 @@ describe("Gatherer: farm HUD", function()
             assert.is_false(FarmHUD.IsShown())
         end)
 
+        it("shows only in the farm's zone and its child maps, not in a neighbouring zone", function()
+            WoWMock.maps[2395] = { name = "Eversong Woods", left = 0, top = 0, width = 1000, height = 1000 }
+            WoWMock.maps[2437] = { name = "Zul'Aman", left = 0, top = 0, width = 1000, height = 1000 }
+            WoWMock.maps[9001] = { name = "Cave", parent = 2395, left = 0, top = 0, width = 100, height = 100 }
+            -- the client gives a position on the farm's map in the neighbouring zone, too
+            WoWMock.mapPosAnywhere = true
+            local route = { zone = 2395 }
+            assert.is_not_nil(FarmHUD.Position(route))
+            WoWMock.mapID = 2437
+            assert.is_nil(FarmHUD.Position(route))
+            WoWMock.mapID = 9001
+            assert.is_not_nil(FarmHUD.Position(route))
+            WoWMock.mapID, WoWMock.mapPos = 2395, { 1.2, 0.5 }
+            assert.is_nil(FarmHUD.Position(route))
+        end)
+
         it("shows by itself only when the setting is on, and never without a route", function()
             GoblinomicsGathererDB.settings.farmHudAuto = true
             Session.Start(farm.id)

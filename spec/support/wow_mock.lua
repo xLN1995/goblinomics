@@ -149,6 +149,7 @@ function mock.reset()
     mock.deposit = 0
     mock.mapID = nil         -- uiMapID of the player
     mock.mapPos = nil        -- { x, y } on that map
+    mock.mapPosAnywhere = false   -- mapPos is given on every map (a neighbouring zone's too)
     mock.facing = 0
     mock.inInstance = false
     mock.cvars = { rotateMinimap = "0" }
@@ -512,10 +513,10 @@ end
 _G.C_Map = {
     GetBestMapForUnit = function() return mock.mapID end,
     GetPlayerMapPosition = function(mapID)
-        if not mock.mapPos or mapID ~= mock.mapID then return nil end
+        if not mock.mapPos or (mapID ~= mock.mapID and not mock.mapPosAnywhere) then return nil end
         return CreateVector2D(mock.mapPos[1], mock.mapPos[2])
     end,
-    GetMapInfo = function(id) local m = mock.maps[id]; return m and { mapID = id, name = m.name } end,
+    GetMapInfo = function(id) local m = mock.maps[id]; return m and { mapID = id, name = m.name, parentMapID = m.parent } end,
     GetMapArtLayers = function(id) local a = mock.mapArt[id]; return a and { a.layer } end,
     GetMapArtLayerTextures = function(id) local a = mock.mapArt[id]; return a and a.textures end,
     GetWorldPosFromMapPos = function(id, pos)

@@ -120,15 +120,11 @@ local function ZoneLabel(id)
     return ns.API.Nodes:ZoneName(id) or ("#" .. tostring(id))
 end
 
---- The player's zone first, then the zones with known nodes in a submenu per
--- expansion (newest first, zones by name); zones of no known expansion last.
+--- The zones with known nodes in a submenu per expansion (newest first, zones by
+-- name); zones of no known expansion last. Where the player stands plays no part.
 local function ZoneChoices()
     local Nodes = ns.API.Nodes
-    local current = Nodes:CurrentZone()
     local list, groups = {}, {}
-    if current then
-        list[1] = { value = current, label = ZoneLabel(current) .. " (" .. ns.L["current"] .. ")" }
-    end
     for _, id in ipairs(Nodes:Zones()) do
         local level = Nodes:ZoneExpansion(id) or -1
         groups[level] = groups[level] or {}
@@ -496,7 +492,7 @@ function FarmEditor.Open(farm)
     form.category = farm and farm.category or "gathering"
     form.instance = farm and farm.instance and CopyTable(farm.instance) or nil
     form.highlightThreshold = farm and farm.highlightThreshold or nil
-    form.zone = farm and farm.zone or (not farm and ns.API.Nodes:Available() and ns.API.Nodes:CurrentZone()) or nil
+    form.zone = farm and farm.zone or nil
     form.nodes = {}
     for _, n in ipairs(farm and farm.nodes or {}) do form.nodes[#form.nodes + 1] = { type = n.type, id = n.id } end
     form.route = farm and farm.route or nil

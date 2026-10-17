@@ -51,13 +51,30 @@ function FarmHUD.State()
     return c.routeFollow
 end
 
+--- True while the player stands in the zone or on one of its child maps. The map
+-- position alone does not tell: it is also given in a neighbouring zone.
+local function InZone(zone)
+    local id = ns.API.Nodes:CurrentZone()
+    for _ = 1, 10 do
+        if not id or id == 0 then return false end
+        if id == zone then return true end
+        local info = C_Map.GetMapInfo(id)
+        local parent = info and info.parentMapID
+        if IsSecret(parent) then return false end
+        id = parent
+    end
+    return false
+end
+
 --- Player position on the route's zone (x, y) and facing, or nil (other zone, instance).
 function FarmHUD.Position(route)
     if IsInInstance and IsInInstance() then return nil end
+    if not InZone(route.zone) then return nil end
     local pos = C_Map.GetPlayerMapPosition(route.zone, "player")
     if not pos then return nil end
     local x, y = pos:GetXY()
     if IsSecret(x) or IsSecret(y) or (x == 0 and y == 0) then return nil end
+    if x < 0 or x > 1 or y < 0 or y > 1 then return nil end
     local facing = GetPlayerFacing and GetPlayerFacing()
     if IsSecret(facing) then facing = nil end
     return x, y, facing or 0
