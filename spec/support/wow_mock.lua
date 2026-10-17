@@ -96,6 +96,10 @@ function mock.reset()
     mock.timers = {}
     mock.locale = "enUS"
     mock.combat = false
+    -- the open profession window: the player's own, ready (specs flip single flags)
+    mock.tradeSkill = { ready = true, changing = false, npc = false, runeforging = false,
+        linked = false, guild = false, guildMember = false }
+    mock.baseProfession = { professionID = 171, professionName = "Alchemy" }
     mock.loggedIn = false
     mock.chat = {}
     mock.errors = {}
@@ -437,7 +441,8 @@ InstallHookables = function()
             local r = mock.recipes[id]
             if not r then return nil end
             return { recipeID = id, name = r.name, isSalvageRecipe = r.isSalvage or false,
-                isEnchantingRecipe = r.isEnchanting or false, qualityIDs = r.qualityIDs, maxQuality = r.maxQuality }
+                isEnchantingRecipe = r.isEnchanting or false, qualityIDs = r.qualityIDs, maxQuality = r.maxQuality,
+                learned = r.learned ~= false, isDummyRecipe = r.isDummy or false }
         end,
         GetProfessionInfoByRecipeID = function(id)
             local r = mock.recipes[id]
@@ -457,6 +462,14 @@ InstallHookables = function()
         GetConcentrationCurrencyID = function(id) return mock.concentrationIDs[id] or 0 end,
         GetProfessionChildSkillLineID = function() return mock.childSkillLine end,
         GetAllRecipeIDs = function() return mock.recipeIDs end,
+        GetBaseProfessionInfo = function() return mock.baseProfession end,
+        IsTradeSkillReady = function() return mock.tradeSkill.ready end,
+        IsDataSourceChanging = function() return mock.tradeSkill.changing end,
+        IsNPCCrafting = function() return mock.tradeSkill.npc end,
+        IsRuneforging = function() return mock.tradeSkill.runeforging end,
+        IsTradeSkillLinked = function() return mock.tradeSkill.linked end,
+        IsTradeSkillGuild = function() return mock.tradeSkill.guild end,
+        IsTradeSkillGuildMember = function() return mock.tradeSkill.guildMember end,
         GetRecipeCooldown = function(id)
             local c = mock.recipeCooldowns[id]
             if not c then return nil, false, 0, 0 end

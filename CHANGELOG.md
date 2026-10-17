@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- The Workshop now remembers which recipes each of your characters has
+  learned, in every expansion, refreshed whenever you open a profession
+  window or learn a new recipe.
+
+### Fixed
+- Opening another player's linked profession, a guild recipe list or an NPC
+  crafting window no longer overwrites your own concentration and recipe
+  cooldowns.
+
 ## [1.1.1] - 2026-10-17
 
 ### Fixed

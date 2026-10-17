@@ -11,7 +11,12 @@ if GOBLINOMICS_CLIENT_BLOCKED then return end
 --   cooldowns      recipes with a daily cooldown or charges, found when the
 --                  profession window opens and after a craft; stored with the time
 --                  they are ready (readyAt) and, for charges, when they are full.
--- Stored per character in the Workshop's character table (professions, cooldowns).
+--   known          the learned recipes per base profession (every expansion), taken
+--                  from the same scan of the open window and kept up to date by
+--                  NEW_RECIPE_LEARNED: { [baseProfessionID] = { recipes = { id, ... }, scannedAt } }.
+-- Only the player's own profession window counts: a linked profession, a guild
+-- recipe list or NPC crafting would otherwise land on this character.
+-- Stored per character in the Workshop's character table (professions, cooldowns, known).
 -- Idle cost: the events below and nothing else; notices plan their own timer.
 local _, ns = ...
 
@@ -190,6 +195,24 @@ local function Changed()
     API.Emit("WORKSHOP_PROFESSIONS", {})
 end
 
+--- The open window shows the player's own profession and its data is ready (Blizzard's
+-- local crafting mode: not NPC crafting, not a guild or linked list; no runeforging).
+function Professions.IsOwnWindow()
+    local ts = C_TradeSkillUI
+    if not ts then return false end
+    local function Is(name) return ts[name] ~= nil and ts[name]() == true end
+    if ts.IsTradeSkillReady and not ts.IsTradeSkillReady() then return false end
+    return not (Is("IsDataSourceChanging") or Is("IsNPCCrafting") or Is("IsRuneforging")
+        or Is("IsTradeSkillLinked") or Is("IsTradeSkillGuild") or Is("IsTradeSkillGuildMember"))
+end
+
+--- Base profession (e.g. 171 Alchemy) of the open window, or nil.
+local function OpenBaseProfession()
+    local ts = C_TradeSkillUI
+    local info = ts and ts.GetBaseProfessionInfo and ts.GetBaseProfessionInfo()
+    return info and info.professionID or nil
+end
+
 --- Profession lines of the current expansion from the open profession window.
 function Professions.ReadWindow()
     local c = Char()
@@ -288,21 +311,49 @@ function Professions.ReadStoredCooldowns()
     Changed()
 end
 
---- Look through the learned recipes of the open profession for cooldowns (a job).
+--- Look through the recipes of the open profession (every expansion): keep the learned
+-- ones per base profession and read their cooldowns (a job).
 function Professions.ScanRecipes()
     local ts = C_TradeSkillUI
     if scanning or not module or not ts or not ts.GetAllRecipeIDs then return end
+    local base = OpenBaseProfession()
     scanning = true
-    module:RunJob("cooldownScan", function()
-        local found = false
+    module:RunJob("recipeScan", function()
+        local found, learned = false, {}
         for i, recipeID in ipairs(ts.GetAllRecipeIDs() or {}) do
             local info = ts.GetRecipeInfo and ts.GetRecipeInfo(recipeID)
+            if info and info.learned == true and not info.isDummyRecipe then learned[#learned + 1] = recipeID end
             if info and info.learned ~= false and Professions.ReadCooldown(recipeID) then found = true end
             if i % 50 == 0 then API.Yield() end
         end
         scanning = false
+        local c = Char()
+        -- an empty list right after opening is no answer; keep what is known
+        if c and base and #learned > 0 then
+            table.sort(learned)
+            c.known = c.known or {}
+            c.known[base] = { recipes = learned, scannedAt = Now() }
+        end
         if found then Changed() end
     end)
+end
+
+--- A recipe just learned: add it to its base profession's list.
+local function OnRecipeLearned(_, recipeID)
+    local c = Char()
+    local ts = C_TradeSkillUI
+    if not c or IsSecret(recipeID) or type(recipeID) ~= "number" or not (ts and ts.GetProfessionInfoByRecipeID) then return end
+    local prof = ts.GetProfessionInfoByRecipeID(recipeID)
+    local base = prof and (prof.parentProfessionID or prof.professionID)
+    if not base then return end
+    c.known = c.known or {}
+    local entry = c.known[base] or { recipes = {} }
+    for _, id in ipairs(entry.recipes) do
+        if id == recipeID then return end
+    end
+    entry.recipes[#entry.recipes + 1] = recipeID
+    table.sort(entry.recipes)
+    c.known[base] = entry
 end
 
 -- Overview over all characters ------------------------------------------------------------
@@ -397,26 +448,27 @@ function Professions.Due(root, settings, now)
 end
 
 -- Events ------------------------------------------------------------------------------------
--- The window fires TRADE_SKILL_LIST_UPDATE often: read once per opening and line.
-local pendingRead, scannedLines = false, {}
+-- The window fires TRADE_SKILL_LIST_UPDATE often: read once per opening and base
+-- profession (the recipe list already covers every expansion line).
+local pendingRead, scannedProfessions = false, {}
 local function OnTradeSkill()
     if pendingRead then return end
     pendingRead = true
     module:After(0.5, function()
         pendingRead = false
         if ns.ProfessionButton then ns.ProfessionButton.Attach() end
+        if not Professions.IsOwnWindow() then return end  -- not ready yet: the next update comes
         Professions.ReadWindow()
-        local line = C_TradeSkillUI and C_TradeSkillUI.GetProfessionChildSkillLineID
-            and C_TradeSkillUI.GetProfessionChildSkillLineID() or 0
-        if not scannedLines[line] then
-            scannedLines[line] = true
+        local base = OpenBaseProfession() or 0
+        if not scannedProfessions[base] then
+            scannedProfessions[base] = true
             Professions.ScanRecipes()
         end
     end)
 end
 
 local function OnTradeSkillClose()
-    for k in pairs(scannedLines) do scannedLines[k] = nil end
+    for k in pairs(scannedProfessions) do scannedProfessions[k] = nil end
 end
 
 -- After a craft (the tracker's record) the recipe may have a new cooldown.
@@ -438,6 +490,7 @@ function Professions.Enable(m)
     m:RegisterEvent("TRADE_SKILL_LIST_UPDATE", OnTradeSkill)
     m:RegisterEvent("TRADE_SKILL_CLOSE", OnTradeSkillClose)
     m:RegisterEvent("CURRENCY_DISPLAY_UPDATE", OnCurrency)
+    m:RegisterEvent("NEW_RECIPE_LEARNED", OnRecipeLearned)
     API.On("WORKSHOP_CRAFT", OnCrafted, "Goblinomics_Workshop.Professions")
     m:After(3, function()
         Professions.ReadStored()

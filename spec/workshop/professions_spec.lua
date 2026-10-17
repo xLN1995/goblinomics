@@ -321,4 +321,78 @@ describe("Workshop: concentration and cooldowns", function()
         WoWMock.flush()
         assert.is_false(wns.ProfessionPopup.IsOpen())
     end)
+
+    describe("learned recipes", function()
+        local function open()
+            WoWMock.fire("TRADE_SKILL_SHOW")
+            WoWMock.advance(1)
+            WoWMock.flush()
+        end
+
+        it("keeps the learned recipes of the open profession, every expansion, without dummies", function()
+            WoWMock.recipes[702].learned = false
+            WoWMock.recipes[703].isDummy = true
+            open()
+            local known = char().known[171]
+            assert.same({ 700, 701, 704 }, known.recipes)
+            assert.equals(WoWMock.now, known.scannedAt)
+        end)
+
+        it("replaces the list on the next opening", function()
+            open()
+            WoWMock.fire("TRADE_SKILL_CLOSE")
+            WoWMock.recipes[700].learned = false
+            open()
+            assert.same({ 701, 702, 703, 704 }, char().known[171].recipes)
+        end)
+
+        it("scans once per opening, not once per expansion tab", function()
+            open()
+            WoWMock.recipes[700].learned = false
+            WoWMock.childSkillLine = 2823        -- switching to the Khaz Algar tab
+            WoWMock.fire("TRADE_SKILL_LIST_UPDATE")
+            WoWMock.advance(1)
+            WoWMock.flush()
+            assert.same({ 700, 701, 702, 703, 704 }, char().known[171].recipes)
+        end)
+
+        it("adds a newly learned recipe to its base profession", function()
+            open()
+            WoWMock.recipes[705] = { name = "New Potion", professionID = 171 }
+            WoWMock.fire("NEW_RECIPE_LEARNED", 705)
+            assert.same({ 700, 701, 702, 703, 704, 705 }, char().known[171].recipes)
+            WoWMock.fire("NEW_RECIPE_LEARNED", 705)                     -- no duplicate
+            assert.equals(6, #char().known[171].recipes)
+        end)
+
+        it("ignores a secret recipe id", function()
+            WoWMock.recipes[706] = { name = "Hidden", professionID = 171 }
+            WoWMock.set_secret(706)
+            WoWMock.fire("NEW_RECIPE_LEARNED", 706)
+            assert.is_nil(char().known)
+        end)
+
+        for _, case in ipairs({ { "linked", "a linked profession" }, { "guild", "a guild recipe list" },
+            { "guildMember", "a guild member's list" }, { "npc", "NPC crafting" } }) do
+            it("takes nothing from " .. case[2], function()
+                WoWMock.tradeSkill[case[1]] = true
+                WoWMock.recipeCooldowns[700] = { 3600, true, 0, 0 }
+                open()
+                assert.is_nil(char().known)
+                assert.is_nil(char().cooldowns)
+                assert.is_nil(next(char().professions or {}))
+            end)
+        end
+
+        it("waits until the window's data is ready", function()
+            WoWMock.tradeSkill.ready = false
+            open()
+            assert.is_nil(char().known)
+            WoWMock.tradeSkill.ready = true
+            WoWMock.fire("TRADE_SKILL_LIST_UPDATE")
+            WoWMock.advance(1)
+            WoWMock.flush()
+            assert.equals(5, #char().known[171].recipes)
+        end)
+    end)
 end)
