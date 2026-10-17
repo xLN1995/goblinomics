@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.1.1] - 2026-10-17
 
 ### Fixed
 - The farm editor no longer picks the zone you stand in for a new farm; the

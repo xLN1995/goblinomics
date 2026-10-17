@@ -12,7 +12,8 @@ local _, ns = ...
 
 ns.CHANGELOG = {
     {
-        version = "unreleased",
+        version = "1.1.1",
+        date = "2026-10-17",
         sections = {
             { title = "Fixed", items = {
                 "The farm editor no longer picks the zone you stand in for a new farm; the zone is only the one you choose.",
