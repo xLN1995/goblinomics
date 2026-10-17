@@ -314,6 +314,7 @@ describe("Gatherer: routes", function()
             pns.FarmEditor.Open(nil)
             local form = pns.FarmEditor.Form()
             form.name = "Tin"
+            form.zone = 2395
             local d = _G.GoblinomicsGathererFarmEditor
             assert.equals("Create route...", d.routeButton.label:GetText())
             form.nodes[1] = { type = "Mining", id = 1249 }

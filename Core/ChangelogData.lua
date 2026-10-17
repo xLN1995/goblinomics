@@ -12,6 +12,16 @@ local _, ns = ...
 
 ns.CHANGELOG = {
     {
+        version = "unreleased",
+        sections = {
+            { title = "Fixed", items = {
+                "The farm editor no longer picks the zone you stand in for a new farm; the zone is only the one you choose.",
+                "The farm HUD shows only inside the farm's zone and no longer guides you along a route in a neighbouring zone.",
+                "A running farm session ends when you log out or close the game and is saved with the time up to the logout; a /reload keeps it running.",
+            } },
+        },
+    },
+    {
         version = "1.1.0",
         date = "2026-10-14",
         modules = {

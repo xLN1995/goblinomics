@@ -12,15 +12,15 @@ if GOBLINOMICS_CLIENT_BLOCKED then return end
 --   repair    durability points used x copper per point (learned at a merchant)
 --   nodes     gathering nodes (NodeTracker), in total and per node
 -- Duration excludes pauses. With auto-pause the idle minutes before the pause do
--- not count either. The session lives in db.char.active and survives /reload; at
--- logout it pauses and resumes on the next login within RESUME_GRACE seconds.
+-- not count either. The session lives in db.char.active and survives /reload; closing
+-- the game or logging out ends it (at the next login of the character, with the
+-- time up to the logout, after a crash up to the last activity).
 local _, ns = ...
 
 local Session = {}
 ns.Session = Session
 
 local RECLASSIFY_WINDOW = 5
-local RESUME_GRACE = 300
 local SLOTS_FIRST, SLOTS_LAST = 1, 19
 -- windows through which items or gold arrive that were not farmed
 local NOT_FARMED = { "merchant", "mail", "auction", "trade", "bank", "warbank", "guildbank", "craft", "craftingOrder" }
@@ -304,8 +304,32 @@ function Session.OnLogout()
     if s and s.runningSince then
         s.accumulated = Session.Duration(s)
         s.runningSince = nil
-        s.resumeAt = time()
+        s.loggedOutAt = time()
     end
+end
+
+-- PLAYER_LOGOUT also fires on /reload: only the next loading screen tells a new
+-- login (the session ended with the logout) from a reload (resume).
+local function OnEnteringWorld(_, isInitialLogin)
+    module:UnregisterEvent("PLAYER_ENTERING_WORLD", "Session")
+    local s = Session.Active()
+    if not s then return end
+    if not isInitialLogin then
+        if s.loggedOutAt then
+            s.loggedOutAt = nil
+            s.runningSince = time()
+            s.lastActivity = s.runningSince
+            ScheduleAutoPause()
+        end
+        return
+    end
+    -- still running without a logout: the game crashed, count up to the last activity
+    if s.runningSince then
+        s.accumulated = (s.accumulated or 0) + math.max(0, (s.lastActivity or s.runningSince) - s.runningSince)
+        s.runningSince = nil
+    end
+    s.loggedOutAt = nil
+    Session.Stop()
 end
 
 function Session.Enable(m)
@@ -313,18 +337,15 @@ function Session.Enable(m)
     local s = Session.Active()
     if s then
         s.missing = Session.MissingDurability()
-        if s.resumeAt and time() - s.resumeAt <= RESUME_GRACE then
-            s.runningSince = time()
-            s.lastActivity = s.runningSince
-        end
-        s.resumeAt = nil
-        ScheduleAutoPause()
+        if s.resumeAt then s.loggedOutAt, s.resumeAt = s.resumeAt, nil end   -- marker of older versions
+        if s.runningSince then ScheduleAutoPause() end
     end
     m:On("LOOT_RECEIVED", OnLoot)
     m:On("MONEY_DELTA", OnMoney)
     m:On("CONTEXT_CHANGED", OnContext)
     m:RegisterEvent("UPDATE_INVENTORY_DURABILITY", OnDurability)
     m:RegisterEvent("CHAT_MSG_MONEY", OnMoneyChat)
+    m:RegisterEvent("PLAYER_ENTERING_WORLD", OnEnteringWorld, "Session")
 end
 
 function Session.Disable()

@@ -17,15 +17,19 @@ describe("Gatherer: session tracker", function()
             nil, nil, nil, nil, WoWMock.player.guid)
     end
 
-    -- logout, wait, log in again with the same SavedVariables and clock
-    local function relog(seconds)
-        WoWMock.fire("PLAYER_LOGOUT")
+    -- logout (or a crash: no PLAYER_LOGOUT), wait, then a /reload or a new login with
+    -- the same SavedVariables and clock
+    local function relog(seconds, how)
+        if how ~= "crash" then WoWMock.fire("PLAYER_LOGOUT") end
         local saved, now = GoblinomicsGathererDB, WoWMock.now
         ns, pns = load_gatherer({ before = function()
             WoWMock.now = now + seconds
             _G.GoblinomicsGathererDB = saved
         end })
         Session = pns.Session
+        ns.Price.RegisterSource(fake("tsm", 10, { market = { ["i:210796"] = 10000 } }))
+        local reload = how == "reload"
+        WoWMock.fire("PLAYER_ENTERING_WORLD", not reload, reload)
     end
 
     before_each(function()
@@ -149,7 +153,7 @@ describe("Gatherer: session tracker", function()
         Session.Start(nil)
         lootLine(HERB, 2)
         WoWMock.advance(100)
-        relog(30)
+        relog(30, "reload")
         local s = Session.Active()
         assert.is_not_nil(s)
         assert.equals(2, s.items["i:210796"])
@@ -157,12 +161,37 @@ describe("Gatherer: session tracker", function()
         assert.equals(100, Session.Duration())
     end)
 
-    it("stays paused after a long logout", function()
+    it("stays paused over a reload when it was paused", function()
         Session.Start(nil)
         WoWMock.advance(100)
-        relog(3600)
+        Session.Pause()
+        relog(30, "reload")
+        assert.is_not_nil(Session.Active())
         assert.is_false(Session.IsRunning())
-        assert.equals(100, Session.Duration())
+    end)
+
+    it("ends with the logout: the next login stores it up to the logout", function()
+        local farm = pns.Farms.Create({ name = "Herbs", category = "gathering" })
+        Session.Start(farm.id)
+        lootLine(HERB, 2)
+        WoWMock.advance(100)
+        relog(60)
+        assert.is_nil(Session.Active())
+        local history = pns.Farms.History(farm.id)
+        assert.equals(1, #history)
+        assert.equals(100, history[1].duration)
+        assert.equals(2, history[1].items["i:210796"])
+    end)
+
+    it("ends after a crash up to the last activity", function()
+        local farm = pns.Farms.Create({ name = "Herbs", category = "gathering" })
+        Session.Start(farm.id)
+        WoWMock.advance(40)
+        lootLine(HERB, 1)
+        WoWMock.advance(500)
+        relog(60, "crash")
+        assert.is_nil(Session.Active())
+        assert.equals(40, pns.Farms.History(farm.id)[1].duration)
     end)
 
     it("learns the repair rate at a merchant and counts only durability used while running", function()

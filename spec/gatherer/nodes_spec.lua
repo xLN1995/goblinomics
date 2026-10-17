@@ -126,7 +126,9 @@ describe("Gatherer: gathering nodes", function()
             WoWMock.maps[2395] = { name = "Eversong Woods", left = 0, top = 0, width = 4000, height = 3000 }
             pns.FarmEditor.Open(nil)
             local form = pns.FarmEditor.Form()
-            assert.equals(2395, form.zone)
+            assert.is_nil(form.zone)   -- where the player stands plays no part
+            form.zone = 2395
+            pns.FarmEditor.RefreshNodes()
             assert.is_true(pns.FarmEditor.ShowsNodes())
             local rows = _G.GoblinomicsGathererFarmEditor.nodeRows
             assert.equals("type", rows[1].kind)
@@ -144,15 +146,15 @@ describe("Gatherer: gathering nodes", function()
             assert.is_false(pns.FarmEditor.ShowsNodes())
         end)
 
-        it("offers the player's zone first, then the zones in a submenu per expansion", function()
+        it("offers the zones in a submenu per expansion, not the player's zone", function()
             _G.EXPANSION_NAME11 = "Midnight"
             WoWMock.mapID = 2405
             WoWMock.maps[2395] = { name = "Eversong Woods", left = 0, top = 0, width = 1, height = 1 }
             WoWMock.maps[2405] = { name = "Voidstorm", left = 0, top = 0, width = 1, height = 1 }
             local list = pns.FarmEditor.ZoneChoices()
-            assert.same({ value = 2405, label = "Voidstorm (current)" }, list[1])
-            assert.equals("Midnight", list[2].label)
-            assert.same({ { value = 2395, label = "Eversong Woods" } }, list[2].children)
+            assert.equals(1, #list)
+            assert.equals("Midnight", list[1].label)
+            assert.same({ { value = 2395, label = "Eversong Woods" } }, list[1].children)
             _G.EXPANSION_NAME11 = nil
         end)
 
