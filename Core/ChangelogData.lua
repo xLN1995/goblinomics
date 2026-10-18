@@ -12,7 +12,8 @@ local _, ns = ...
 
 ns.CHANGELOG = {
     {
-        version = "unreleased",
+        version = "1.1.2",
+        date = "2026-10-18",
         sections = {
             { title = "Fixed", items = {
                 "The \"What's new\" window no longer fails with a Lua error when it opens for the first time after logging in.",

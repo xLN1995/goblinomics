@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.1.2] - 2026-10-18
 
 ### Fixed
 - The "What's new" window no longer fails with a Lua error when it opens for
