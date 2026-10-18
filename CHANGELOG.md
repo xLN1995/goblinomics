@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- The "What's new" window no longer fails with a Lua error when it opens for
+  the first time after logging in.
+
 ## [1.1.1] - 2026-10-17
 
 ### Fixed

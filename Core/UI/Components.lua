@@ -413,8 +413,10 @@ function Widgets.Dialog(spec)
         control:SetPoint("TOPLEFT", self.body, "TOPLEFT", 140, y)
         return fs
     end
-    d:SetScript("OnHide", function() if spec.onClose then spec.onClose() end end)
     if UISpecialFrames then tinsert(UISpecialFrames, name) end
+    -- hide before the handler goes in: the initial Hide must not run onClose while the
+    -- caller is still building (its upvalue holding the dialog is nil until we return)
     d:Hide()
+    d:SetScript("OnHide", function() if spec.onClose then spec.onClose() end end)
     return d
 end
