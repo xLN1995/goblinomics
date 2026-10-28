@@ -12,6 +12,17 @@ local _, ns = ...
 
 ns.CHANGELOG = {
     {
+        version = "unreleased",
+        modules = {
+            { addon = "Goblinomics_Flips", text = "Tracks the items you buy on the auction house and sell there again: profit, ROI, sale rate and holding time per item, with your open stock, a profit chart and every purchase in a detail view. While the auction house is open it shows your cost basis and break-even when you post and your flip record when you buy, also in TSM and Auctionator tooltips." },
+        },
+        sections = {
+            { title = "Added", items = {
+                "Insights reports show your flip profit next to crafting and farming, and flip sales carry the tag \"Flip\" in the Ledger.",
+            } },
+        },
+    },
+    {
         version = "1.1.2",
         date = "2026-10-18",
         sections = {

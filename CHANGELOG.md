@@ -1,5 +1,18 @@
 # Changelog
 
+## [Unreleased]
+
+### New modules
+- Goblinomics_Flips: Tracks the items you buy on the auction house and sell
+  there again: profit, ROI, sale rate and holding time per item, with your
+  open stock, a profit chart and every purchase in a detail view. While the
+  auction house is open it shows your cost basis and break-even when you post
+  and your flip record when you buy, also in TSM and Auctionator tooltips.
+
+### Added
+- Insights reports show your flip profit next to crafting and farming, and
+  flip sales carry the tag "Flip" in the Ledger.
+
 ## [1.1.2] - 2026-10-18
 
 ### Fixed
