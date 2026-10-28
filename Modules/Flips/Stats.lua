@@ -1,7 +1,7 @@
 if GOBLINOMICS_CLIENT_BLOCKED then return end
 -- Modules/Flips/Stats.lua
--- Statistics per item and in total for a window (days, nil = all time) and an
--- optional character (the buyer of the lot). Sales, ends and write-offs count in
+-- Statistics per item and in total for a window (days or from, optional to; nil =
+-- all time) and an optional character (the buyer of the lot). Sales, ends and write-offs count in
 -- the window of their own time, purchases in the window of the purchase:
 --   profit   = net revenue - cost of the sold units - lost deposits - write-offs
 --   roi      = profit / (cost of the sold units + written-off cost)
@@ -39,10 +39,10 @@ local function Cutoff(days, now, from)
     return days and ((now or time()) - days * 86400) or nil
 end
 
---- Add one lot to s (sales, ends and write-offs from cutoff on).
-local function AddLot(s, lot, cutoff, now)
+--- Add one lot to s (sales, ends and write-offs from cutoff on, before `to`).
+local function AddLot(s, lot, cutoff, now, to)
     if lot.state == "ignored" then return end
-    local inWindow = function(t) return not cutoff or t >= cutoff end
+    local inWindow = function(t) return (not cutoff or t >= cutoff) and (not to or t < to) end
     if inWindow(lot.time) and lot.state ~= "candidate" then
         s.bought = s.bought + lot.qty
         s.spent = s.spent + lot.qty * lot.unit
@@ -100,11 +100,12 @@ function Stats.ByItem(filter)
     end
     local root = module.db.root
     for _, lot in ipairs(root.lots) do
-        if not filter.char or lot.char == filter.char then AddLot(For(lot.key), lot, cutoff, now) end
+        if not filter.char or lot.char == filter.char then AddLot(For(lot.key), lot, cutoff, now, filter.to) end
     end
     local fromDay = cutoff and Day(cutoff) or nil
+    local toDay = filter.to and Day(filter.to) or nil
     for day, byKey in pairs(root.aggregates) do
-        if not fromDay or day >= fromDay then
+        if (not fromDay or day >= fromDay) and (not toDay or day < toDay) then
             for key, byChar in pairs(byKey) do
                 for char, a in pairs(byChar) do
                     if not filter.char or char == filter.char then AddAggregate(For(key), a) end

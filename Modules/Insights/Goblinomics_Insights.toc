@@ -6,7 +6,7 @@
 ## Category: Goblinomics
 ## Group: Goblinomics
 ## Dependencies: Goblinomics
-## OptionalDeps: Goblinomics_Vault, Goblinomics_Ledger, Goblinomics_Workshop, Goblinomics_Gatherer
+## OptionalDeps: Goblinomics_Vault, Goblinomics_Ledger, Goblinomics_Workshop, Goblinomics_Gatherer, Goblinomics_Flips
 ## LoadOnDemand: 1
 ## SavedVariables: GoblinomicsInsightsDB
 ## IconTexture: Interface\AddOns\Goblinomics\Media\goblinomics_icon_64

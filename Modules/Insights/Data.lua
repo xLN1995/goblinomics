@@ -365,6 +365,10 @@ function Data.Report(kind, offset, char, noPrevious)
         local b = API.Workshop:Breakdown({ from = from, to = to, char = char })
         r.crafting = b and b.total
     end
+    if API.Flips then
+        local f = API.Flips:Summary({ from = from, to = to, char = char })
+        r.flips = f and f.totals.items > 0 and f.totals.profit or nil
+    end
     if API.Gatherer then
         local sessions, total = 0, 0
         for _, s in ipairs(API.Gatherer:Summaries(from)) do
@@ -398,7 +402,7 @@ function Data.Report(kind, offset, char, noPrevious)
 end
 
 function Data.Enable(module)
-    for _, event in ipairs({ "LEDGER_CHANGED", "NETWORTH_UPDATED", "WORKSHOP_MATCH", "WORKSHOP_ORDER" }) do
+    for _, event in ipairs({ "LEDGER_CHANGED", "NETWORTH_UPDATED", "WORKSHOP_MATCH", "WORKSHOP_ORDER", "FLIPS_CHANGED" }) do
         module:On(event, Data.Invalidate)
     end
 end

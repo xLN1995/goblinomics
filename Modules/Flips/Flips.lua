@@ -31,7 +31,7 @@ local Flips = API.RegisterModule(ADDON_NAME, {
 })
 ns.Flips = Flips
 
-local PARTS = { "Store", "Engine", "Stats", "Retention", "Backfill", "FlipsUI" }
+local PARTS = { "Store", "Engine", "Stats", "Retention", "Backfill", "FlipsUI", "AuctionHints", "Cards" }
 
 function Flips:OnInit()
     local root = self.db.root

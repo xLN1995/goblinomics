@@ -17,3 +17,5 @@ Backfill.lua
 Retention.lua
 FlipsUI.lua
 FlipsDetail.lua
+AuctionHints.lua
+Cards.lua
