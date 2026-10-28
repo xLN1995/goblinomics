@@ -525,6 +525,7 @@ L["%d characters"] = "%d Charaktere"
 
 L["Inventory of every character, wealth and the Jealousmeter."] = "Inventar aller Charaktere, Wealth und das Jealousmeter."
 L["Books every gold movement into categories and logs the auction house."] = "Bucht jede Goldbewegung in Kategorien und führt das AH-Log."
+L["Items bought on the auction house and resold: profit, sale rate and holding time."] = "Im AH gekaufte und wieder verkaufte Items: Gewinn, Verkaufsrate und Haltedauer."
 L["Farm sessions with HUD, loot highlights and lockouts."] = "Farm-Sessions mit HUD, Beute-Hinweisen und Lockouts."
 L["Crafts with their real reagent costs and profit per recipe."] = "Crafts mit echten Reagenzienkosten und Profit pro Rezept."
 L["History, cash flow and reports; loads when opened."] = "Verlauf, Geldfluss und Reports; lädt beim Öffnen."

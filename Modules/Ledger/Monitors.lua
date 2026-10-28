@@ -56,7 +56,8 @@ local function MailDecision(index, sender, subject)
         -- without a key the name stays in the note, else only the buyer would be left
         local note = player
         if not key and type(itemName) == "string" then note = player and (itemName .. " (" .. player .. ")") or itemName end
-        return { category = "AH", sub = "sale", itemKey = key, quantity = count, note = note }
+        return { category = "AH", sub = "sale", itemKey = key, quantity = count, note = note,
+            tag = ns.SaleTag and ns.SaleTag(key, count or 1) or nil }
     end
     outbidPattern = outbidPattern or (AUCTION_OUTBID_MAIL_SUBJECT and API.ChatPattern.Build(AUCTION_OUTBID_MAIL_SUBJECT))
     if outbidPattern and type(subject) == "string" and subject:match(outbidPattern) then

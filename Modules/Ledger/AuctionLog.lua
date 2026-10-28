@@ -37,7 +37,7 @@ local function Add(kind, key, quantity, amount, deposit, name, net)
     Invalidate()
     local q = quantity or 1
     API.Emit("LEDGER_AH_EVENT", { kind = kind, itemKey = key, quantity = quantity, amount = amount,
-        net = net or amount, unitPrice = (amount and q > 0) and amount / q or nil })
+        net = net or amount, unitPrice = (amount and q > 0) and amount / q or nil, deposit = deposit or 0 })
 end
 
 -- Open postings -----------------------------------------------------------------------
@@ -234,6 +234,20 @@ function AuctionLog.Stats(key, days)
         windowCache[cacheKey] = map
     end
     return map[key]
+end
+
+--- Events from `since` on (nil = all) in time order, decoded:
+-- { { time, kind, itemKey, quantity, amount, deposit } } (Flips backfill).
+function AuctionLog.Events(since)
+    local list = {}
+    for _, e in ipairs(root.ah.events) do
+        if not since or e[T] >= since then
+            list[#list + 1] = { time = e[T], kind = e[KIND], itemKey = e[KEY] or (e[NAME] and root.ah.names[e[NAME]]),
+                quantity = e[QTY] or 1, amount = e[AMT] or 0, deposit = e[DEP] or 0 }
+        end
+    end
+    table.sort(list, function(a, b) return a.time < b.time end)
+    return list
 end
 
 --- Drop events older than `days` (Retention).

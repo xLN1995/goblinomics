@@ -69,6 +69,15 @@ function ns.BookingLabel(category, sub)
     return kind and (name .. " \194\183 " .. kind) or name
 end
 
+--- Tag of an auction sale booking from the registered taggers (nil = none).
+function ns.SaleTag(key, quantity)
+    for _, fn in ipairs(ns.saleTaggers or {}) do
+        local ok, tag = pcall(fn, key, quantity)
+        if ok and tag then return tag end
+    end
+    return nil
+end
+
 local PARTS = { "Store", "Monitors", "Classifier", "AuctionLog", "Retention", "TradePopup", "LedgerUI", "LedgerCards" }
 
 function Ledger:OnInit()
@@ -122,6 +131,15 @@ API.Ledger = {
         local copy = {}
         for k, v in pairs(s) do copy[k] = v end
         return copy
+    end,
+    --- Auction log events from `since` on (nil = all), oldest first:
+    -- { { time, kind, itemKey, quantity, amount, deposit } }
+    AuctionEvents = function(_, since) return ns.AuctionLog and ns.AuctionLog.Events(since) or {} end,
+    --- fn(itemKey, quantity) -> tag or nil, asked for every auction sale booking
+    -- (after LEDGER_AH_EVENT "sale"); the first tag wins. Flips tags its sales.
+    RegisterSaleTagger = function(_, fn)
+        ns.saleTaggers = ns.saleTaggers or {}
+        ns.saleTaggers[#ns.saleTaggers + 1] = fn
     end,
     --- Remove everything an import added: bookings, auction log events.
     RemoveImport = function(_, source)

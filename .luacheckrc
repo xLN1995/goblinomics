@@ -25,6 +25,7 @@ globals = {
     "GoblinomicsDB",
     "GoblinomicsVaultDB",
     "GoblinomicsLedgerDB",
+    "GoblinomicsFlipsDB",
     "GoblinomicsGathererDB",
     "GoblinomicsWorkshopDB",
     "GoblinomicsInsightsDB",
@@ -101,5 +102,5 @@ files["Core/ChangelogData.lua"] = { max_line_length = false }
 
 files["spec/**"] = {
     std = "+busted",
-    globals = { "WoWMock", "load_addon_file", "load_core", "load_vault", "load_ledger", "load_gatherer", "load_workshop", "load_insights", "load_import", "load_link", "toc_files", "GoblinomicsTestDB" },
+    globals = { "WoWMock", "load_addon_file", "load_core", "load_vault", "load_ledger", "load_gatherer", "load_workshop", "load_flips", "load_insights", "load_import", "load_link", "toc_files", "GoblinomicsTestDB" },
 }
