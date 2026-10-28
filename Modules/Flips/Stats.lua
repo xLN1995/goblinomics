@@ -33,7 +33,9 @@ end
 
 local function Day(t) return date("%Y-%m-%d", t) end
 
-local function Cutoff(days, now)
+--- Start of the window: filter.from (epoch) wins over days.
+local function Cutoff(days, now, from)
+    if from then return from end
     return days and ((now or time()) - days * 86400) or nil
 end
 
@@ -85,7 +87,7 @@ Stats.SUMS = SUMS
 function Stats.ByItem(filter)
     filter = filter or {}
     local now = time()
-    local cutoff = Cutoff(filter.days, now)
+    local cutoff = Cutoff(filter.days, now, filter.from)
     local map = {}
     local function For(key)
         local s = map[key]
@@ -141,7 +143,7 @@ end
 function Stats.Daily(days, filter)
     filter = filter or {}
     local now = time()
-    local cutoff = Cutoff(days or 30, now)
+    local cutoff = Cutoff(days or 30, now, filter.from)
     local byDay = {}
     local function Bucket(t)
         local d = Day(t)
@@ -195,6 +197,66 @@ function Stats.Daily(days, filter)
     end
     local list = {}
     for _, b in pairs(byDay) do list[#list + 1] = b end
+    table.sort(list, function(a, b) return a.day < b.day end)
+    return list
+end
+
+--- Lots of one item for the detail view, newest first: copies with the derived
+-- sold quantity, realized profit (net - cost - lost deposits - write-off) and posts.
+function Stats.Lots(key)
+    local list = {}
+    for _, lot in ipairs(module.db.root.lots) do
+        if lot.key == key then
+            local e = { id = lot.id, time = lot.time, char = lot.char, qty = lot.qty, unit = lot.unit, state = lot.state,
+                remaining = lot.remaining, posts = lot.posts, soldQty = 0, profit = 0 }
+            for _, sale in ipairs(lot.sales) do
+                e.soldQty = e.soldQty + sale.qty
+                e.profit = e.profit + sale.net - sale.cost
+            end
+            for _, x in ipairs(lot.ends) do e.profit = e.profit - (x.deposit or 0) end
+            if lot.writeoff then e.profit = e.profit - math.floor(lot.writeoff.qty * lot.unit + 0.5) end
+            e.open = ns.Store.Open(lot, time())
+            list[#list + 1] = e
+        end
+    end
+    table.sort(list, function(a, b) return a.time > b.time end)
+    return list
+end
+
+--- Average purchase and sale price per unit and day (window from `from`), oldest
+-- first: { { day, buy, sell } } with nil where nothing happened.
+function Stats.Prices(key, from)
+    local byDay = {}
+    local function Bucket(t)
+        local d = Day(t)
+        local b = byDay[d]
+        if not b then
+            b = { day = d, buyQty = 0, buySum = 0, sellQty = 0, sellSum = 0 }
+            byDay[d] = b
+        end
+        return b
+    end
+    for _, lot in ipairs(module.db.root.lots) do
+        if lot.key == key and lot.state ~= "ignored" then
+            if not from or lot.time >= from then
+                local b = Bucket(lot.time)
+                b.buyQty = b.buyQty + lot.qty
+                b.buySum = b.buySum + lot.qty * lot.unit
+            end
+            for _, sale in ipairs(lot.sales) do
+                if not from or sale.time >= from then
+                    local b = Bucket(sale.time)
+                    b.sellQty = b.sellQty + sale.qty
+                    b.sellSum = b.sellSum + sale.gross
+                end
+            end
+        end
+    end
+    local list = {}
+    for _, b in pairs(byDay) do
+        list[#list + 1] = { day = b.day, buy = b.buyQty > 0 and b.buySum / b.buyQty or nil,
+            sell = b.sellQty > 0 and b.sellSum / b.sellQty or nil }
+    end
     table.sort(list, function(a, b) return a.day < b.day end)
     return list
 end

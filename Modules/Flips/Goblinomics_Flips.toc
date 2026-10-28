@@ -15,3 +15,5 @@ Engine.lua
 Stats.lua
 Backfill.lua
 Retention.lua
+FlipsUI.lua
+FlipsDetail.lua

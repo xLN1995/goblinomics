@@ -31,11 +31,11 @@ local Flips = API.RegisterModule(ADDON_NAME, {
 })
 ns.Flips = Flips
 
-local PARTS = { "Store", "Engine", "Stats", "Retention", "Backfill" }
+local PARTS = { "Store", "Engine", "Stats", "Retention", "Backfill", "FlipsUI" }
 
 function Flips:OnInit()
     local root = self.db.root
-    for _, key in ipairs({ "lots", "aggregates" }) do
+    for _, key in ipairs({ "lots", "aggregates", "ignoredKeys" }) do
         if type(root[key]) ~= "table" then root[key] = {} end
     end
     if type(root.nextId) ~= "number" then root.nextId = 1 end
@@ -54,6 +54,11 @@ API.Flips = {
     --- Open lots of a key (copies), oldest first.
     OpenLots = function(_, key) return ns.Store and ns.Store.OpenLots(key) or {} end,
 }
+
+--- Something changed in the lots (UI refresh, debounced by the listeners).
+function ns.Changed()
+    ns.API.Emit("FLIPS_CHANGED", {})
+end
 
 function Flips:OnEnable()
     for _, part in ipairs(PARTS) do

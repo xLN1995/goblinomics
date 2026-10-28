@@ -27,6 +27,7 @@ end
 --- Add a candidate lot (quantity > 0, unit price in copper); returns the lot.
 function Store.Add(key, quantity, unit, t, char)
     if not key or not quantity or quantity <= 0 or not unit or unit < 0 then return nil end
+    if Store.IsIgnoredKey(key) then return nil end
     local lot = { id = NextId(), key = key, char = char, time = t or time(), qty = quantity, unit = unit,
         state = "candidate", remaining = quantity, posts = 0, sales = {}, ends = {} }
     local lots = Lots()
@@ -81,6 +82,24 @@ function Store.Ignore(id)
     local lot = Store.ById(id)
     if lot then lot.state = "ignored" end
     return lot
+end
+
+--- Leave an item out for good: its lots become ignored, new purchases are not tracked.
+function Store.IgnoreKey(key)
+    local root = module.db.root
+    root.ignoredKeys[key] = true
+    for _, lot in ipairs(root.lots) do
+        if lot.key == key then lot.state = "ignored" end
+    end
+end
+
+function Store.IsIgnoredKey(key)
+    return module.db.root.ignoredKeys[key] == true
+end
+
+--- Track an ignored item again (from now on; old lots stay ignored).
+function Store.UnignoreKey(key)
+    module.db.root.ignoredKeys[key] = nil
 end
 
 --- Write off what is left of a lot (vendored, used, lost): the cost counts as loss.

@@ -60,7 +60,7 @@ function Backfill.Run()
             Backfill.Apply(e)
             API.Yield()
         end
-    end)
+    end, ns.Changed)
 end
 
 function Backfill.Enable(m)

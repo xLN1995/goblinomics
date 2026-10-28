@@ -79,20 +79,22 @@ end
 function Engine.FromBooking(p)
     if not (p and p.category == "AH" and p.sub == "purchase" and p.itemKey) then return end
     if (p.quantity or 0) <= 0 or (p.amount or 0) >= 0 or p.imported then return end
-    Engine.Purchase(p.itemKey, p.quantity, -p.amount, p.time, p.char)
+    if Engine.Purchase(p.itemKey, p.quantity, -p.amount, p.time, p.char) then ns.Changed() end
 end
 
 function Engine.FromAuctionEvent(p)
     if not (p and p.itemKey) then return end
     local char = module.db.charKey
+    local n = 0
     if p.kind == "post" then
-        Engine.Post(p.itemKey, p.quantity)
+        n = Engine.Post(p.itemKey, p.quantity)
     elseif p.kind == "sale" then
-        local matched = Engine.Sale(p.itemKey, p.quantity, p.amount, p.net, time(), char)
-        lastSale = { key = p.itemKey, matched = matched }
+        n = Engine.Sale(p.itemKey, p.quantity, p.amount, p.net, time(), char)
+        lastSale = { key = p.itemKey, matched = n }
     elseif p.kind == "expired" or p.kind == "cancelled" then
-        Engine.Ended(p.kind, p.itemKey, p.quantity, p.deposit)
+        n = Engine.Ended(p.kind, p.itemKey, p.quantity, p.deposit)
     end
+    if n > 0 then ns.Changed() end
 end
 
 --- Ledger sale tag: "Flip" when the sale just logged was matched against lots.
