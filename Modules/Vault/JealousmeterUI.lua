@@ -8,7 +8,8 @@ if GOBLINOMICS_CLIENT_BLOCKED then return end
 -- names, the faces suffice), an optional
 -- movable and lockable window with the same content,
 -- prestige frames drawn in code, the level-up toast and the tooltip line for the
--- minimap / LDB / compartment. Updates only on NETWORTH_UPDATED.
+-- minimap / LDB / compartment. Updates only on NETWORTH_UPDATED. The meter leaves
+-- speculative items out: their value is too uncertain to count.
 local _, ns = ...
 
 local JUI = {}
@@ -284,8 +285,13 @@ function JUI.SetTotal(copper)
     if not preview then JUI.Refresh() end
 end
 
+--- The value the meter measures: wealth without the speculative items.
+function JUI.Value(result)
+    return math.max(0, (result.wealth or 0) - (result.speculative or 0))
+end
+
 local function OnNetworth(_, result)
-    JUI.SetTotal(result.wealth or 0)
+    JUI.SetTotal(JUI.Value(result))
 end
 
 -- /gob jealous <gold> | off : display preview (does not change saved data)

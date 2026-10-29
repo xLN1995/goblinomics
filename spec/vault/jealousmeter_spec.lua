@@ -81,6 +81,14 @@ describe("Vault: Jealousmeter toasts", function()
         assert.equals(1, #toasts)
     end)
 
+    it("measures the wealth without speculative items", function()
+        local JUI = vns.JealousmeterUI
+        assert.equals(60000 * G, JUI.Value({ wealth = 80000 * G, speculative = 20000 * G }))
+        assert.equals(80000 * G, JUI.Value({ wealth = 80000 * G }))
+        ns.API.Emit("NETWORTH_UPDATED", { wealth = 80000 * G, speculative = 60000 * G })
+        assert.equals(20000 * G, (JUI.Current()))
+    end)
+
     it("previews values without touching saved data", function()
         vns.JealousmeterUI.SetTotal(20000 * G)
         ns.EntryPoints.HandleSlash("jealous 5000000")

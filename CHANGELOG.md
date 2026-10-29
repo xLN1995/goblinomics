@@ -13,6 +13,10 @@
 - Insights reports show your flip profit next to crafting and farming, and
   flip sales carry the tag "Flip" in the Ledger.
 
+### Changed
+- The Gallywix Jealousmeter leaves speculative items out, so items that
+  hardly sell no longer push it up; your linked accounts still count in full.
+
 ## [1.1.2] - 2026-10-18
 
 ### Fixed

@@ -20,6 +20,9 @@ ns.CHANGELOG = {
             { title = "Added", items = {
                 "Insights reports show your flip profit next to crafting and farming, and flip sales carry the tag \"Flip\" in the Ledger.",
             } },
+            { title = "Changed", items = {
+                "The Gallywix Jealousmeter leaves speculative items out, so items that hardly sell no longer push it up; your linked accounts still count in full.",
+            } },
         },
     },
     {
