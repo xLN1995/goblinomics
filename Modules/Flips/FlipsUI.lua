@@ -290,6 +290,8 @@ local function BuildFilters(page)
         set = function(text) state.search = text; UI.Refresh(); return true end,
         tooltip = L["Search item"],
     })
+    -- the search takes the room between the period and the right-hand controls
+    tab.search:SetPoint("LEFT", tab.period, "RIGHT", S.GAP, 0)
     tab.search:SetPoint("RIGHT", tab.openOnly, "LEFT", -S.GAP, 0)
     tab.search:HookScript("OnTextChanged", function(self, userInput)
         if userInput then state.search = self:GetText(); UI.Refresh() end
