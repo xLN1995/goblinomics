@@ -17,6 +17,7 @@ PAIRS=(
     "Goblinomics:."
     "Goblinomics_Vault:Modules/Vault"
     "Goblinomics_Ledger:Modules/Ledger"
+    "Goblinomics_Flips:Modules/Flips"
     "Goblinomics_Gatherer:Modules/Gatherer"
     "Goblinomics_Workshop:Modules/Workshop"
     "Goblinomics_Insights:Modules/Insights"

@@ -25,6 +25,7 @@ globals = {
     "GoblinomicsDB",
     "GoblinomicsVaultDB",
     "GoblinomicsLedgerDB",
+    "GoblinomicsFlipsDB",
     "GoblinomicsGathererDB",
     "GoblinomicsWorkshopDB",
     "GoblinomicsInsightsDB",
@@ -75,7 +76,7 @@ read_globals = {
     "print",
     -- Namespaces
     "C_AddOns", "C_Timer", "C_Container", "C_Bank", "C_Item", "C_Mail",
-    "C_TradeSkillUI", "C_RestrictedActions", "C_PlayerInfo", "C_AuctionHouse",
+    "C_TradeSkillUI", "C_RestrictedActions", "C_PlayerInfo", "C_AuctionHouse", "AuctionHouseFrame", "TooltipUtil", "TooltipDataProcessor",
     "C_CurrencyInfo", "C_Secrets", "C_Spell", "GetServerExpansionLevel", "ProfessionsFrame", "C_ChallengeMode", "C_EventUtils", "C_AddOnProfiler", "Enum",
     "C_Map", "CreateVector2D", "GetPlayerFacing", "IsInInstance", "C_CVar", "C_Minimap",
     "Minimap_UpdateRotationSetting",
@@ -101,5 +102,5 @@ files["Core/ChangelogData.lua"] = { max_line_length = false }
 
 files["spec/**"] = {
     std = "+busted",
-    globals = { "WoWMock", "load_addon_file", "load_core", "load_vault", "load_ledger", "load_gatherer", "load_workshop", "load_insights", "load_import", "load_link", "toc_files", "GoblinomicsTestDB" },
+    globals = { "WoWMock", "load_addon_file", "load_core", "load_vault", "load_ledger", "load_gatherer", "load_workshop", "load_flips", "load_insights", "load_import", "load_link", "toc_files", "GoblinomicsTestDB" },
 }

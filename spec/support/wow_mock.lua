@@ -128,6 +128,7 @@ function mock.reset()
     _G.GoblinomicsDB = nil
     _G.GoblinomicsVaultDB = nil
     _G.GoblinomicsLedgerDB = nil
+    _G.GoblinomicsFlipsDB = nil
     _G.GoblinomicsGathererDB = nil
     _G.GoblinomicsWorkshopDB = nil
     for i = 1, 4 do _G["SLASH_GOBLINOMICS" .. i] = nil end

@@ -92,6 +92,27 @@ function load_ledger(opts)
     return ns, lns
 end
 
+--- Boot the core plus Ledger and Flips (namespaces returned as lns, fns).
+-- opts.before(ns, lns) runs after the Ledger is loaded, before Flips.
+function load_flips(opts)
+    opts = opts or {}
+    local ns = load_core({ boot = true, money = opts.money or 100000 })
+    local lns = {}
+    for _, file in ipairs(toc_files("Modules/Ledger/Goblinomics_Ledger.toc", "Modules/Ledger/")) do
+        load_addon_file(file, "Goblinomics_Ledger", lns)
+    end
+    WoWMock.fire("ADDON_LOADED", "Goblinomics_Ledger")
+    if opts.before then opts.before(ns, lns) end
+    local fns = {}
+    for _, file in ipairs(toc_files("Modules/Flips/Goblinomics_Flips.toc", "Modules/Flips/")) do
+        load_addon_file(file, "Goblinomics_Flips", fns)
+    end
+    WoWMock.fire("ADDON_LOADED", "Goblinomics_Flips")
+    WoWMock.loggedIn = true
+    WoWMock.fire("PLAYER_LOGIN")
+    return ns, fns, lns
+end
+
 --- Boot the core plus the Gatherer module (shared Gatherer namespace returned as pns).
 function load_gatherer(opts)
     opts = opts or {}

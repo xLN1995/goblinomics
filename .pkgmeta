@@ -5,6 +5,7 @@ manual-changelog: CHANGELOG.md
 move-folders:
   Goblinomics/Modules/Vault: Goblinomics_Vault
   Goblinomics/Modules/Ledger: Goblinomics_Ledger
+  Goblinomics/Modules/Flips: Goblinomics_Flips
   Goblinomics/Modules/Gatherer: Goblinomics_Gatherer
   Goblinomics/Modules/Workshop: Goblinomics_Workshop
   Goblinomics/Modules/Insights: Goblinomics_Insights

@@ -389,9 +389,10 @@ local function BuildReports(parent)
     p.today:SetPoint("RIGHT", -PAD, 0)
 
     local row1 = p.stack:Add(KpiRow(p.frame, { L["Income"], L["Expenses"], L["Net"] }), TILE_H)
-    local row2 = p.stack:Add(KpiRow(p.frame, { L["Wealth change"], L["Crafting profit"], L["Farming"] }), TILE_H)
+    local row2 = p.stack:Add(KpiRow(p.frame, { L["Wealth change"], L["Crafting profit"], L["Flip profit"], L["Farming"] }),
+        TILE_H)
     p.tiles = { income = row1.tiles[1], expense = row1.tiles[2], net = row1.tiles[3],
-        wealth = row2.tiles[1], crafting = row2.tiles[2], farming = row2.tiles[3] }
+        wealth = row2.tiles[1], crafting = row2.tiles[2], flips = row2.tiles[3], farming = row2.tiles[4] }
 
     p.chartCard = p.stack:Add(Card(p.frame, ""), 200)
     p.chart = Charts.TimeChart(p.chartCard.body, { height = 160, empty = L["No bookings in this period."],
@@ -485,6 +486,8 @@ local function BuildReports(parent)
         end
         p.tiles.crafting.value:SetText(r.crafting and Money(r.crafting, { color = true, sign = true }) or "-")
         p.tiles.crafting:SetChange(prev and Change(r.crafting, prev.crafting), true, suffix)
+        p.tiles.flips.value:SetText(r.flips and Money(r.flips, { color = true, sign = true }) or "-")
+        p.tiles.flips:SetChange(prev and Change(r.flips, prev.flips), true, suffix)
         p.tiles.farming.value:SetText(r.sessions and r.sessions > 0 and Money(r.farmed) or "-")
         p.tiles.farming.note:SetText(CODE.dim .. API.Lf("%d sessions", r.sessions or 0) .. "|r")
         p.chartData = isDay and r.hours or r.days

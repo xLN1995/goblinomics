@@ -1,0 +1,21 @@
+## Interface: 120100, 120105
+## Title: |cff3fbf3fGoblinomics|r Flips
+## Notes: Auction house flips: items bought and resold, profit, sale rate, holding time
+## Author: xLN
+## Version: @project-version@
+## Category: Goblinomics
+## Group: Goblinomics
+## Dependencies: Goblinomics, Goblinomics_Ledger
+## SavedVariables: GoblinomicsFlipsDB
+## IconTexture: Interface\AddOns\Goblinomics\Media\goblinomics_icon_64
+
+Flips.lua
+Store.lua
+Engine.lua
+Stats.lua
+Backfill.lua
+Retention.lua
+FlipsUI.lua
+FlipsDetail.lua
+AuctionHints.lua
+Cards.lua
