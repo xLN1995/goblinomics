@@ -12,6 +12,14 @@ local _, ns = ...
 
 ns.CHANGELOG = {
     {
+        version = "unreleased",
+        sections = {
+            { title = "Changed", items = {
+                "The Gallywix Jealousmeter leaves speculative items out, so items that hardly sell no longer push it up; your linked accounts still count in full.",
+            } },
+        },
+    },
+    {
         version = "1.1.2",
         date = "2026-10-18",
         sections = {
