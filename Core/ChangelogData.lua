@@ -12,7 +12,8 @@ local _, ns = ...
 
 ns.CHANGELOG = {
     {
-        version = "unreleased",
+        version = "1.3.0",
+        date = "2026-11-08",
         sections = {
             { title = "Added", items = {
                 "Goblinomics runs on WoW: Forever. The Gallywix Jealousmeter climbs from 50 silver to 1,000 gold there (prestige at 2,000, 5,000 and 10,000 gold), amounts show their silver, charts label small amounts in silver, items count as speculative from 10 gold and loot notices start at 5 gold.",

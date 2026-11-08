@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.3.0] - 2026-11-08
 
 ### Added
 - Goblinomics runs on WoW: Forever. The Gallywix Jealousmeter climbs from
