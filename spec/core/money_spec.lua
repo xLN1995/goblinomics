@@ -37,3 +37,25 @@ describe("Core/Util/Money", function()
         assert.truthy(Money.Format(10000):find("UI%-GoldIcon"))
     end)
 end)
+
+describe("Core/Util/Money: silver in abbreviated amounts", function()
+    local function plain(text)
+        return (text:gsub("|TInterface\\MoneyFrame\\UI%-GoldIcon[^|]*|t", "g")
+            :gsub("|TInterface\\MoneyFrame\\UI%-SilverIcon[^|]*|t", "s"))
+    end
+
+    it("keeps the silver when asked", function()
+        local Money = load_core().Money
+        assert.equals("12g 34s", plain(Money.Format(123456, { abbreviate = true, silver = true })))
+        assert.equals("12g", plain(Money.Format(120056, { abbreviate = true, silver = true })))
+        assert.equals("50s", plain(Money.Format(5000, { abbreviate = true, silver = true })))
+        assert.equals("-12g 34s", plain(Money.Format(-123456, { abbreviate = true, silver = true })))
+        assert.equals("12.3Kg", plain(Money.Format(123456789, { abbreviate = true, silver = true })))
+        assert.equals("12g", plain(Money.Format(123456, { abbreviate = true })))
+    end)
+
+    it("shows silver by default on WoW: Forever and gold only on retail", function()
+        assert.equals("12g 34s", plain(load_core({ client = "forever" }).Money.Format(123456, { abbreviate = true })))
+        assert.equals("12g", plain(load_core().Money.Format(123456, { abbreviate = true })))
+    end)
+end)

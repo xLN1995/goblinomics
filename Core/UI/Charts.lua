@@ -62,10 +62,11 @@ function Charts.DateTicks(n, maxLabels)
     return list
 end
 
---- Short gold label for the value axis: "950", "12K", "2.5K", "1.2M" (copper in).
+--- Short gold label for the value axis: "950", "12K", "2.5K", "1.2M", below one gold "25s" (copper in).
 function Charts.AxisLabel(copper)
     local g = copper / 10000
     local a = math.abs(g)
+    local silver = a < 1 and math.floor(a * 100 + 0.5) or nil
     local text
     if a >= 1000000 then
         text = ("%.1fM"):format(g / 1000000)
@@ -73,6 +74,8 @@ function Charts.AxisLabel(copper)
         text = ("%.0fK"):format(g / 1000)
     elseif a >= 1000 then
         text = ("%.1fK"):format(g / 1000)
+    elseif silver and silver > 0 and silver < 100 then
+        text = (g < 0 and "-" or "") .. silver .. "s"
     else
         text = ("%d"):format(math.floor(g + 0.5))
     end

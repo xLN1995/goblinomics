@@ -1,7 +1,7 @@
 if GOBLINOMICS_CLIENT_BLOCKED then return end
 -- Modules/Gatherer/Highlights.lua
 -- Loot highlights during a running session: an item stack worth at least the
--- threshold (farm override or setting, default 2,500 g), one of the farm's
+-- threshold (farm override or setting, default 2,500 g, 5 g on WoW: Forever), one of the farm's
 -- expected highlights or an item on the global watchlist shows a toast, with an
 -- optional sound. Mounts and legendary items always trigger a highlight,
 -- whatever their value and the threshold. During the

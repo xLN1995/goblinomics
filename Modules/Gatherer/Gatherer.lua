@@ -61,7 +61,7 @@ local Gatherer = API.RegisterModule(ADDON_NAME, {
             end,
         },
         defaults = {
-            highlightThreshold = 2500,   -- gold
+            highlightThreshold = ns.API.Flavor.IsForever() and 5 or 2500,   -- gold
             highlightSound = "kit:UI_EPICLOOT_TOAST",
             specialSound = "kit:UI_LEGENDARY_LOOT_TOAST",   -- mounts and legendary items
             autoPauseMinutes = 0,        -- 0 = off

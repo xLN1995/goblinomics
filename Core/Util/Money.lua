@@ -4,6 +4,8 @@ if GOBLINOMICS_CLIENT_BLOCKED then return end
 --   Money.Format(copper)                        -> "12g 34s 56c" with coin icons
 --   Money.Format(copper, { icons = false })      -> "12g 34s 56c" with coloured letters
 --   Money.Format(copper, { abbreviate = true })  -> "1.43M g" / "12.3K g" / "950g"
+--   Money.Format(copper, { abbreviate = true, silver = true }) -> "950g 12s" (whole gold keeps
+--       its silver; the default on WoW: Forever, where silver still counts)
 --   Money.Format(copper, { color = true })       -> green for gains, red for losses
 -- Pure Lua apart from the optional BreakUpLargeNumbers. Covered by spec/core/money_spec.lua.
 local _, ns = ...
@@ -69,7 +71,12 @@ function Money.Format(copper, opts)
     local gI = icons and GOLD_ICON or GOLD_LETTER
     local text
     if opts.abbreviate then
+        local silver = opts.silver
+        if silver == nil then silver = ns.Flavor ~= nil and ns.Flavor.IsForever() end
         text = Abbreviate(g) .. (icons and gI or " " .. gI)
+        if silver and g > 0 and g < 10000 and s > 0 then
+            text = text .. " " .. s .. (icons and SILVER_ICON or SILVER_LETTER)
+        end
         if g == 0 then
             text = s .. (icons and SILVER_ICON or SILVER_LETTER)
         end

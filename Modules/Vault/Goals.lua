@@ -236,7 +236,7 @@ local function RegisterCard()
             if ns.JealousmeterUI then copper, level = ns.JealousmeterUI.Current() end
             local info = ns.Jealousmeter.Info(copper, level)
             f.jealous:SetText(info.toNext and API.Lf("Jealousmeter: %s to the next face",
-                API.Money.Format(math.floor(info.toNext + 0.5) * 10000, { abbreviate = true })) or L["Jealousmeter: maximum"])
+                API.Money.Format(math.floor(info.toNext * 10000 + 0.5), { abbreviate = true })) or L["Jealousmeter: maximum"])
         end,
     })
 end

@@ -4,7 +4,7 @@ if GOBLINOMICS_CLIENT_BLOCKED then return end
 --   tradable with a market price -> market price (the vendor price when that is
 --            higher: nobody sells below it); tier "speculative" when the sale
 --            rate is below the speculative threshold and the item is worth at
---            least speculativeMinValue (1000 gold) each, else "market"
+--            least speculativeMinValue (1000 gold, 10 on WoW: Forever) each, else "market"
 --   tradable without a market price -> vendor price, tier "vendor" (grey junk
 --            and other items that cannot go to the auction house)
 --   bound -> tier "bound", unit 0 (not part of the wealth); vendorUnit is kept

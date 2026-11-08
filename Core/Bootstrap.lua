@@ -35,7 +35,8 @@ local CORE_DB = {
             preferred = "tsm",
             tsm = { market = "DBMarket", destroy = "Destroy", saleRate = "DBRegionSaleRate" },
             speculativeThreshold = 0.05,
-            speculativeMinValue = 10000000,   -- 1000 gold: cheaper items are never speculative
+            -- 1000 gold (10 on WoW: Forever): cheaper items are never speculative
+            speculativeMinValue = ns.Flavor.IsForever() and 100000 or 10000000,
         },
     },
     charDefaults = {

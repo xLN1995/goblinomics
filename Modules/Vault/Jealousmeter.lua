@@ -1,9 +1,10 @@
 if GOBLINOMICS_CLIENT_BLOCKED then return end
 -- Modules/Vault/Jealousmeter.lua
 -- Gallywix Jealousmeter logic (pure). Levels:
---   0..8   regular tiers (Unimpressed .. Greed Frenzy); tier 8 runs up to the gold cap
---   9      GoldCap+ (Hostile Takeover), reached at the gold cap of 9,999,999 g
---   10..12 prestige x2, x5, x10 cap (frames around the GoldCap+ face)
+--   0..8   regular tiers (Unimpressed .. Greed Frenzy); tier 8 runs up to the top
+--   9      Hostile Takeover, reached at the top of the ladder: the gold cap of
+--          9,999,999 g on retail, 1,000 g (an epic mount) on WoW: Forever
+--   10..12 prestige x2, x5, x10 of the top (frames around the Hostile Takeover face)
 -- Progress inside a level is linear in absolute gold between the level's threshold
 -- and the next one. Levels have no names; the faces identify them. Hysteresis: a level is kept until the
 -- value drops below 98 % of its threshold, so values oscillating around a
@@ -15,15 +16,26 @@ local J = {}
 ns.Jealousmeter = J
 
 local COPPER_PER_GOLD = 10000
-J.CAP = 9999999
 J.HYSTERESIS = 0.98
 J.MAX_LEVEL = 12
 
--- threshold in gold per level
-J.THRESHOLDS = {
-    [0] = 0, 10000, 50000, 100000, 250000, 500000, 1000000, 2500000, 5000000,
-    J.CAP, 2 * J.CAP, 5 * J.CAP, 10 * J.CAP,
+-- Ladders in gold: eight tiers, then the top level (prestige at x2, x5 and x10 of it).
+J.SETS = {
+    retail  = { cap = 9999999, tiers = { 10000, 50000, 100000, 250000, 500000, 1000000, 2500000, 5000000 } },
+    forever = { cap = 1000,    tiers = { 0.5, 1, 5, 10, 25, 50, 100, 250 } },
 }
+
+--- Select a ladder ("retail" | "forever"): J.SET, J.CAP and J.THRESHOLDS (gold per level).
+function J.Use(id)
+    local set = J.SETS[id] or J.SETS.retail
+    J.SET = J.SETS[id] and id or "retail"
+    J.CAP = set.cap
+    local t = { [0] = 0 }
+    for i = 1, 8 do t[i] = set.tiers[i] end
+    t[9], t[10], t[11], t[12] = set.cap, 2 * set.cap, 5 * set.cap, 10 * set.cap
+    J.THRESHOLDS = t
+end
+J.Use(ns.API and ns.API.Flavor and ns.API.Flavor.id or "retail")
 
 J.KEYS = {
     [0] = "unimpressed", "amused", "curious", "impressed", "displeased", "envious",

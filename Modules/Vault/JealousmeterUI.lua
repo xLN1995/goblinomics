@@ -176,7 +176,7 @@ local function UpdateMeter(m)
     local info = J.Info(copper, level)
     m.face:SetTexture(J.Texture(level))
     m.bar:SetValue(info.progress)
-    m.wealth:SetText(API.Money.Format(math.floor(copper / 10000) * 10000, { abbreviate = true }))
+    m.wealth:SetText(API.Money.Format(copper, { abbreviate = true }))
     for _, mark in ipairs(m.marks) do
         if info.next then
             local lo = J.THRESHOLDS[level]
@@ -294,7 +294,7 @@ local function OnNetworth(_, result)
     JUI.SetTotal(JUI.Value(result))
 end
 
--- /gob jealous <gold> | off : display preview (does not change saved data)
+-- /gob jealous <gold> | <N>s | off : display preview (does not change saved data)
 local function PreviewCommand(arg)
     arg = (arg or ""):lower()
     if arg == "off" or arg == "" then
@@ -302,9 +302,10 @@ local function PreviewCommand(arg)
         JUI.Refresh()
         return
     end
-    local gold = tonumber((arg:gsub("[%s,%.]", "")))
-    if not gold then return end
-    local copper = gold * 10000
+    local silver = arg:match("^(%d+)%s*s$")
+    local gold = not silver and tonumber((arg:gsub("[%s,%.]", "")))
+    if not silver and not gold then return end
+    local copper = silver and tonumber(silver) * 100 or gold * 10000
     preview = preview or { highest = state.level or 0 }
     preview.copper = copper
     preview.level = J.Level(copper, preview.level)
@@ -330,7 +331,7 @@ function JUI.Enable(module)
         tt:AddDoubleLine(("|T%s:20|t %s"):format(J.Texture(level, true), L["Wealth"]),
             API.Money.Format(copper, { abbreviate = true }), 1, 0.82, 0, 1, 1, 1)
     end)
-    API.RegisterCommand("jealous", PreviewCommand, L["<gold>|off - preview the Jealousmeter"])
+    API.RegisterCommand("jealous", PreviewCommand, L["<gold>|<N>s|off - preview the Jealousmeter"])
     JUI.ApplyWindowSetting()
 end
 

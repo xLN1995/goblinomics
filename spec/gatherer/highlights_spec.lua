@@ -89,3 +89,10 @@ describe("Gatherer: highlights", function()
         _G.C_MountJournal = nil
     end)
 end)
+
+describe("Gatherer: highlights on WoW: Forever", function()
+    it("notifies from 5 gold by default", function()
+        local pns = select(2, load_gatherer({ client = "forever" }))
+        assert.equals(5 * 10000, pns.Highlights.Threshold(nil))
+    end)
+end)

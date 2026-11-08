@@ -124,3 +124,73 @@ describe("Vault: Jealousmeter toasts", function()
         assert.truthy(table.concat(GameTooltip.lines, "\n"):find("tier1_amused_64", 1, true))
     end)
 end)
+
+describe("Vault: Jealousmeter on WoW: Forever", function()
+    local ns, vns, J, toasts
+
+    before_each(function()
+        ns, vns = load_vault({ client = "forever" })
+        J = vns.Jealousmeter
+        toasts = {}
+        ns.UI.Toast = function(spec) toasts[#toasts + 1] = spec end
+    end)
+
+    it("uses the Forever ladder: 50 silver to 1,000 gold, prestige at 2k, 5k and 10k", function()
+        assert.equals("forever", J.SET)
+        assert.equals(1000, J.CAP)
+        local thresholds = { 0, 0.5, 1, 5, 10, 25, 50, 100, 250 }
+        for tier, gold in ipairs(thresholds) do
+            assert.equals(tier - 1, J.Level(gold * G))
+            if gold > 0 then assert.equals(tier - 2, J.Level(gold * G - 1)) end
+        end
+        assert.equals(8, J.Level(999 * G))
+        assert.same({ 9, 0 }, { J.Face(J.Level(1000 * G)) })
+        assert.same({ 9, 1 }, { J.Face(J.Level(2000 * G)) })
+        assert.same({ 9, 2 }, { J.Face(J.Level(5000 * G)) })
+        assert.same({ 9, 3 }, { J.Face(J.Level(10000 * G)) })
+    end)
+
+    it("switches back to the retail ladder on request", function()
+        J.Use("retail")
+        assert.equals("retail", J.SET)
+        assert.equals(9999999, J.CAP)
+        assert.equals(1, J.Level(10000 * G))
+        assert.equals(0, J.Level(9999 * G))
+        J.Use("forever")
+        assert.equals(1, J.Level(5000))
+    end)
+
+    it("fills the first level from 0 to 50 silver and keeps the hysteresis", function()
+        local info = J.Info(2500, 0)   -- 25 silver
+        assert.equals(0.5, info.progress)
+        assert.equals(0.5, info.next)
+        assert.equals(0.25, info.toNext)
+        local level = J.Level(5000)
+        assert.equals(1, level)
+        assert.equals(1, J.Level(4900, level))   -- 49 silver: inside the 2 % band
+        assert.equals(0, J.Level(4800, level))
+    end)
+
+    it("shows silver below one gold: wealth, marks, toast and preview", function()
+        ns.UI.GetSidePanel().build(CreateFrame("Frame"))
+        local JUI = vns.JealousmeterUI
+        JUI.SetTotal(2500)   -- first value is recorded silently
+        JUI.Refresh()
+        local m = JUI.Meters()[1]
+        assert.truthy(m.wealth:GetText():find("^25|T"))
+        local labels = {}
+        for i, mark in ipairs(m.marks) do labels[i] = mark.label:GetText() end
+        assert.same({ "0", "13s", "25s", "38s", "50s" }, labels)
+        JUI.SetTotal(6000)   -- 60 silver: level 1
+        assert.equals(1, #toasts)
+        assert.truthy(toasts[1].text:find("^50|T"))
+        ns.EntryPoints.HandleSlash("jealous 75s")
+        local copper, level = JUI.Current()
+        assert.equals(7500, copper)
+        assert.equals(1, level)
+        ns.EntryPoints.HandleSlash("jealous 1000")
+        assert.equals(9, select(2, JUI.Current()))
+        ns.EntryPoints.HandleSlash("jealous off")
+        assert.equals(1, select(2, JUI.Current()))
+    end)
+end)

@@ -18,8 +18,10 @@ local ROW_H = 22
 local window
 
 local function Money(copper)
-    -- whole gold with coin icon; small amounts keep silver and copper
+    -- whole gold with coin icon; small amounts keep silver and copper. On WoW: Forever
+    -- every amount shows gold and silver.
     local API = ns.API
+    if API.Flavor.IsForever() then return API.Money.Format(copper or 0, { abbreviate = true }) end
     if math.abs(copper or 0) >= 10000 then
         local gold = math.floor(math.abs(copper) / 10000 + 0.5) * 10000
         return API.Money.Format(copper < 0 and -gold or gold)

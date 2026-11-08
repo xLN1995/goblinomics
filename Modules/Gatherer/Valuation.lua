@@ -68,10 +68,19 @@ function Valuation.FormatDuration(seconds)
     return ("%02d:%02d:%02d"):format(math.floor(seconds / 3600), math.floor(seconds % 3600 / 60), seconds % 60)
 end
 
---- Whole gold with thousands separators, e.g. "182,400g" (plain text, chat safe).
+--- Whole gold with thousands separators, e.g. "182,400g" (plain text, chat safe);
+-- on WoW: Forever gold and silver, e.g. "12g 34s".
 function Valuation.Gold(copper)
     copper = copper or 0
-    local gold = math.floor(math.abs(copper) / 10000 + 0.5)
+    local abs = math.abs(copper)
+    if ns.API.Flavor.IsForever() then
+        local gold, silver = math.floor(abs / 10000), math.floor(abs % 10000 / 100)
+        local text = gold > 0 and (ns.API.Money.Group(gold) .. "g") or ""
+        if silver > 0 then text = text .. (gold > 0 and " " or "") .. silver .. "s" end
+        if text == "" then return "0g" end
+        return (copper < 0 and "-" or "") .. text
+    end
+    local gold = math.floor(abs / 10000 + 0.5)
     return (copper < 0 and gold > 0 and "-" or "") .. ns.API.Money.Group(gold) .. "g"
 end
 
