@@ -20,10 +20,12 @@ comes as several folders (core plus modules and connectors), and the app handles
 all of them.
 
 By hand: extract every `Goblinomics*` folder from the zip into
-`World of Warcraft/_retail_/Interface/AddOns/`, then restart the game completely.
-A `/reload` is not enough for new addon folders.
+`World of Warcraft/_retail_/Interface/AddOns/` (`_forever_` for WoW: Forever), then
+restart the game completely. A `/reload` is not enough for new addon folders.
 
-You need WoW Retail 12.1 or newer. Install **TradeSkillMaster or Auctionator** as
+You need WoW Retail 12.1 or newer, or WoW: Forever. On Forever the Jealousmeter
+climbs from 50 silver to 1,000 gold, amounts show their silver, and the expansion
+filters stay hidden. Install **TradeSkillMaster or Auctionator** as
 well, otherwise Goblinomics only knows vendor prices and your wealth will look
 sad. CraftSim is optional and helps with craft costs. GatherMate2 is optional too:
 with it, gathering farms know their zone and nodes.
@@ -69,7 +71,8 @@ The repository root is the core addon. `Modules/` and `Connectors/` become their
 own addon folders when the BigWigs packager builds a release (see `.pkgmeta`).
 
 ```sh
-tools/link-dev.sh        # symlink the addon folders into your AddOns directory
+tools/link-dev.sh        # symlink the addon folders into your Retail AddOns directory
+tools/link-dev.sh --forever   # the same for the WoW: Forever client
 tools/test.sh            # busted specs, Lua 5.1 in Docker
 tools/lint.sh            # luacheck
 tools/package.sh         # build a release zip into release/ without uploading
@@ -77,7 +80,8 @@ tools/locale-export.sh   # every phrase as a list for translators
 ```
 
 `link-dev.sh` guesses the AddOns path. If yours is somewhere else, set
-`WOW_ADDONS=/path/to/Interface/AddOns`. Tests and lint only need Docker.
+`WOW_ADDONS=/path/to/Interface/AddOns` (`--forever` swaps `_retail_` for
+`_forever_` in it). Tests and lint only need Docker.
 
 Other addons can read Goblinomics data through `Goblinomics.API.v1`. The wiki has
 a page for addon authors. Translations are welcome as pull requests against

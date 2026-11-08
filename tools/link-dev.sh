@@ -1,16 +1,46 @@
 #!/usr/bin/env bash
-# Link the repo's addon folders into the WoW Retail AddOns directory for development.
+# Link the repo's addon folders into a WoW AddOns directory for development.
 #
-#   tools/link-dev.sh            create/update symlinks (idempotent)
-#   tools/link-dev.sh --status   show link -> target and whether it resolves
-#   tools/link-dev.sh --unlink   remove only symlinks that point into this repo
-#   tools/link-dev.sh --prune    remove dangling symlinks in the AddOns folder (asks first)
+#   tools/link-dev.sh                        create/update symlinks in Retail (idempotent)
+#   tools/link-dev.sh --forever              the same for WoW: Forever (_forever_)
+#   tools/link-dev.sh [--forever] --status   show link -> target and whether it resolves
+#   tools/link-dev.sh [--forever] --unlink   remove only symlinks that point into this repo
+#   tools/link-dev.sh [--forever] --prune    remove dangling symlinks in the AddOns folder (asks first)
 #
-# Override the AddOns path with WOW_ADDONS=/path/to/Interface/AddOns.
+# The WoW folder is guessed (~/Games/World of Warcraft, or a Wine prefix under
+# ~/Games/battlenet or ~/.wine). Override the AddOns path with
+# WOW_ADDONS=/path/to/Interface/AddOns; --forever swaps _retail_ for _forever_ in it.
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ADDONS="${WOW_ADDONS:-$HOME/Games/World of Warcraft/_retail_/Interface/AddOns}"
+FLAVOR="_retail_"
+ACTION=""
+for arg in "$@"; do
+    case "$arg" in
+        --forever) FLAVOR="_forever_" ;;
+        --retail)  FLAVOR="_retail_" ;;
+        --status|--unlink|--prune) ACTION="$arg" ;;
+        *) echo "Usage: $0 [--forever] [--status|--unlink|--prune]" >&2; exit 2 ;;
+    esac
+done
+
+guess_addons() {
+    local root
+    for root in "$HOME/Games/World of Warcraft" \
+                "$HOME/Games/battlenet/drive_c/Program Files (x86)/World of Warcraft" \
+                "$HOME/.wine/drive_c/Program Files (x86)/World of Warcraft"; do
+        if [[ -d "$root/$FLAVOR/Interface/AddOns" ]]; then
+            echo "$root/$FLAVOR/Interface/AddOns"
+            return
+        fi
+    done
+    echo "$HOME/Games/World of Warcraft/$FLAVOR/Interface/AddOns"
+}
+if [[ -n "${WOW_ADDONS:-}" ]]; then
+    ADDONS="${WOW_ADDONS/_retail_/$FLAVOR}"
+else
+    ADDONS="$(guess_addons)"
+fi
 
 # link name : path relative to repo root
 PAIRS=(
@@ -31,7 +61,7 @@ PAIRS=(
 
 if [[ ! -d "$ADDONS" ]]; then
     echo "AddOns folder not found: $ADDONS" >&2
-    echo "Set WOW_ADDONS to your Interface/AddOns path." >&2
+    echo "Set WOW_ADDONS to your Interface/AddOns path (--forever swaps _retail_ for _forever_)." >&2
     exit 1
 fi
 
@@ -101,10 +131,9 @@ prune_dangling() {
     fi
 }
 
-case "${1:-}" in
+case "$ACTION" in
     "")         link_all ;;
     --status)   status_all ;;
     --unlink)   unlink_all ;;
     --prune)    prune_dangling ;;
-    *)          echo "Usage: $0 [--status|--unlink|--prune]" >&2; exit 2 ;;
 esac
