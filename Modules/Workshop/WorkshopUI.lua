@@ -1,6 +1,7 @@
 if GOBLINOMICS_CLIENT_BLOCKED then return end
 -- Modules/Workshop/WorkshopUI.lua
--- Workshop tab: sub-tabs Overview, Recipes, Crafting orders, Salvage (and views
+-- Workshop tab: sub-tabs Overview, Recipes, Crafting orders (not on WoW: Forever,
+-- which has no crafting orders), Salvage (and views
 -- other parts add, e.g. concentration and cooldowns), one filter row below them
 -- (period, profession, character), the selected view below that. A recipe opens
 -- its details (cost per craft, history) in a dialog. Shared helpers for the
@@ -97,14 +98,28 @@ function UI.KeyFigures(parent, items, width)
     return card, values, height
 end
 
---- "Sold crafts x, Crafting orders y (, Salvage z)" with coloured amounts.
+--- Sources of the realized profit in display order: { key, label, color, code }
+-- (key as in Stats.Breakdown, colour for the chart, colour code for text).
+-- Crafting orders do not exist on WoW: Forever.
+function UI.Sources()
+    local Theme = API.Theme
+    local C, CODE = Theme.colors, Theme.CODE
+    local list = { { key = "sales", label = L["Sold crafts"], color = C.accent, code = CODE.good } }
+    if not API.Flavor.IsForever() then
+        list[#list + 1] = { key = "orders", label = L["Crafting orders"], color = C.gold, code = CODE.gold }
+    end
+    list[#list + 1] = { key = "salvage", label = L["Salvage"], color = C.neutral, code = CODE.dim }
+    return list
+end
+
+--- "Sold crafts x, Crafting orders y (, Salvage z)" with coloured amounts; salvage
+-- only when it is not zero.
 function UI.BreakdownText(b, separator)
-    local parts = {
-        L["Sold crafts"] .. " " .. Money(b.sales, { color = true, sign = true }),
-        L["Crafting orders"] .. " " .. Money(b.orders, { color = true, sign = true }),
-    }
-    if b.salvage ~= 0 then
-        parts[#parts + 1] = L["Salvage"] .. " " .. Money(b.salvage, { color = true, sign = true })
+    local parts = {}
+    for _, s in ipairs(UI.Sources()) do
+        if s.key ~= "salvage" or b.salvage ~= 0 then
+            parts[#parts + 1] = s.label .. " " .. Money(b[s.key], { color = true, sign = true })
+        end
     end
     return table.concat(parts, separator or "\n")
 end
@@ -118,12 +133,13 @@ end
 -- Views ------------------------------------------------------------------------------
 -- Sub-tabs of the Workshop; build(parent) returns { frame, Refresh(filter) }.
 -- noPeriod: the period filter does not apply (it is hidden for that view).
+-- retail: the view exists on retail only (dropped on WoW: Forever).
 local VIEWS = {
     { id = "overview", label = function() return L["Overview"] end,
         build = function(parent) return ns.WorkshopSummary.Build(parent) end },
     { id = "recipes", label = function() return L["Recipes"] end,
         build = function(parent) return ns.WorkshopRecipes.Build(parent) end },
-    { id = "orders", label = function() return L["Crafting orders"] end,
+    { id = "orders", label = function() return L["Crafting orders"] end, retail = true,
         build = function(parent) return ns.WorkshopDetail.BuildOrders(parent) end },
     { id = "salvage", label = function() return L["Salvage"] end,
         build = function(parent) return ns.WorkshopDetail.BuildSalvage(parent) end },
@@ -391,11 +407,15 @@ local function RegisterCard()
             for _, r in ipairs(ns.Stats.Recipes(filter)) do
                 if r.sold > 0 then best = r break end
             end
-            f.lines:SetText(table.concat({
-                L["Sold crafts"] .. " " .. Money(b.sales, { color = true, sign = true }),
-                L["Crafting orders"] .. " " .. Money(b.orders, { color = true, sign = true }),
-                best and (L["Best"] .. ": " .. (best.output and (UI.ItemLabel(best.output)) or best.name)) or "",
-            }, "\n"))
+            local lines = {}
+            for _, s in ipairs(UI.Sources()) do
+                if s.key ~= "salvage" then
+                    lines[#lines + 1] = s.label .. " " .. Money(b[s.key], { color = true, sign = true })
+                end
+            end
+            lines[#lines + 1] = best and (L["Best"] .. ": " .. (best.output and (UI.ItemLabel(best.output)) or best.name))
+                or ""
+            f.lines:SetText(table.concat(lines, "\n"))
         end,
     })
 end
@@ -403,6 +423,11 @@ end
 function UI.Enable(m)
     module = m
     API, L = ns.API, ns.L
+    if API.Flavor.IsForever() then
+        for i = #VIEWS, 1, -1 do
+            if VIEWS[i].retail then table.remove(VIEWS, i) end
+        end
+    end
     API.UI:RegisterTab({
         id = "workshop", title = function() return L["Workshop"] end, order = 40,
         build = BuildTab,

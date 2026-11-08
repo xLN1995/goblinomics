@@ -2,12 +2,12 @@ if GOBLINOMICS_CLIENT_BLOCKED then return end
 -- Modules/Workshop/WorkshopSummary.lua
 -- "Overview" view of the Workshop, in cards: realized profit large with the
 -- change against the previous period and the split into sold crafts / crafting
--- orders / salvage, and the open stock (items, cost, current market value);
+-- orders / salvage (no orders on WoW: Forever, see WorkshopUI.Sources), and the
+-- open stock (items, cost, current market value);
 -- profit per day as stacked bars; top recipes by profit and the best recipes by
 -- concentration value per point, plus one line per profession. A click on a
 -- recipe opens its details.
 local _, ns = ...
-local CODE = setmetatable({}, { __index = function(_, k) return ns.API.Theme.CODE[k] end })
 
 local Summary = {}
 ns.WorkshopSummary = Summary
@@ -20,6 +20,18 @@ local module
 local function DaysFor(period)
     if type(period) ~= "number" then return 30 end
     return math.max(14, math.min(90, period))
+end
+
+--- Tooltip of a bar in the profit-per-day chart: the date, one line per source
+-- and the total.
+function Summary.ChartTooltip(bar)
+    local L, UI = ns.L, ns.WorkshopUI
+    local v, lines = bar.values, {}
+    for _, s in ipairs(UI.Sources()) do
+        lines[#lines + 1] = s.label .. ": " .. UI.Money(v[s.key], { color = true, sign = true })
+    end
+    lines[#lines + 1] = L["Total"] .. ": " .. UI.Money(bar.total, { color = true, sign = true })
+    return ns.API.Format:Date(bar.day, "long"), lines
 end
 
 function Summary.Build(parent)
@@ -62,28 +74,21 @@ function Summary.Build(parent)
     chartCard:SetPoint("TOPLEFT", kpi, "BOTTOMLEFT", 0, -S.GAP)
     chartCard:SetPoint("RIGHT", f, "RIGHT", 0, 0)
     chartCard:SetHeight(150)
+    local sources = UI.Sources()
     local legend = Theme.Text(chartCard, "small", C.textDim)
     legend:SetPoint("TOPRIGHT", chartCard, "TOPRIGHT", -S.PAD, S.CARD_TITLE_Y)
     legend:SetJustifyH("RIGHT")
-    legend:SetText((CODE.good .. "%s|r  " .. CODE.gold .. "%s|r  " .. CODE.dim .. "%s|r"):format(L["Sold crafts"], L["Crafting orders"],
-        L["Salvage"]))
+    local parts = {}
+    for i, s in ipairs(sources) do parts[i] = s.code .. s.label .. "|r" end
+    legend:SetText(table.concat(parts, "  "))
+    page.legend = legend
     page.chart = W.BarChart(chartCard.body, {
-        width = 420, height = 100, gap = 2,
-        series = { { key = "sales", color = C.accent }, { key = "orders", color = C.gold },
-            { key = "salvage", color = C.neutral } },
-        tooltip = function(bar)
-            local v = bar.values
-            return ns.API.Format:Date(bar.day, "long"), {
-                L["Sold crafts"] .. ": " .. UI.Money(v.sales, { color = true, sign = true }),
-                L["Crafting orders"] .. ": " .. UI.Money(v.orders, { color = true, sign = true }),
-                L["Salvage"] .. ": " .. UI.Money(v.salvage, { color = true, sign = true }),
-                L["Total"] .. ": " .. UI.Money(bar.total, { color = true, sign = true }),
-            }
-        end,
+        width = 420, height = 100, gap = 2, series = sources, tooltip = Summary.ChartTooltip,
     })
     page.chart:SetPoint("TOPLEFT", 0, 0)
     page.chart:SetPoint("BOTTOMRIGHT", 0, 0)
-    page.chartEmpty = W.EmptyState(chartCard.body, L["No sales or orders in this period."])
+    page.chartEmpty = W.EmptyState(chartCard.body,
+        API.Flavor.IsForever() and L["No sales in this period."] or L["No sales or orders in this period."])
 
     -- top recipes and concentration value
     local left = W.Card(f, L["Top recipes"])

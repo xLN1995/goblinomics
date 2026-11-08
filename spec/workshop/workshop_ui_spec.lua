@@ -112,3 +112,60 @@ describe("Workshop UI", function()
         assert.equals("i:950", sp.yields[1].key)
     end)
 end)
+
+describe("Workshop UI on WoW: Forever (no crafting orders)", function()
+    after_each(function() assert.same({}, WoWMock.errors) end)
+
+    local ns, wns
+
+    before_each(function()
+        ns, wns = load_workshop({ client = "forever", before = function()
+            WoWMock.recipes[100] = { name = "Potion", profession = "Alchemy", schematic = { reagentSlotSchematics = {} } }
+        end })
+    end)
+
+    it("offers no crafting orders view and opens the overview for a saved orders view", function()
+        local UI = wns.WorkshopUI
+        local ids = {}
+        for _, v in ipairs(UI.VIEWS) do ids[v.id] = true end
+        assert.is_nil(ids.orders)
+        assert.is_true(ids.overview and ids.recipes and ids.salvage and ids.professions)
+        GoblinomicsWorkshopDB.settings.view = "orders"   -- saved on retail, same account
+        local tab = ns.UI.GetTab("workshop")
+        tab.build(CreateFrame("Frame"))
+        tab.onShow()
+        assert.equals("overview", UI.state.view)
+        assert.is_true(UI.CurrentPage().frame:IsShown())
+    end)
+
+    it("leaves crafting orders out of the profit split, the chart and the dashboard card", function()
+        local UI = wns.WorkshopUI
+        local keys = {}
+        for i, s in ipairs(UI.Sources()) do keys[i] = s.key end
+        assert.same({ "sales", "salvage" }, keys)
+        local text = UI.BreakdownText({ sales = 1000, orders = 0, salvage = 500, total = 1500 }, " | ")
+        assert.truthy(text:find("Sold crafts", 1, true))
+        assert.truthy(text:find("Salvage", 1, true))
+        assert.is_nil(text:find("Crafting orders", 1, true))
+
+        local tab = ns.UI.GetTab("workshop")
+        tab.build(CreateFrame("Frame"))
+        tab.onShow()
+        local page = UI.CurrentPage()
+        assert.truthy(page.legend:GetText():find("Salvage", 1, true))
+        assert.is_nil(page.legend:GetText():find("Crafting orders", 1, true))
+        assert.equals("No sales in this period.", page.chartEmpty.text:GetText())
+        local _, lines = wns.WorkshopSummary.ChartTooltip({ day = WoWMock.now, total = 1500,
+            values = { sales = 1000, orders = 0, salvage = 500 } })
+        assert.equals(3, #lines)                                    -- sold crafts, salvage, total
+        assert.is_nil(table.concat(lines, "\n"):find("Crafting orders", 1, true))
+
+        local card
+        for _, w in ipairs(ns.UI.SortedWidgets()) do if w.id == "workshop.crafting" then card = w end end
+        local f = CreateFrame("Frame")
+        card.build(f)
+        card.refresh(f, {})
+        assert.truthy(f.lines:GetText():find("Sold crafts", 1, true))
+        assert.is_nil(f.lines:GetText():find("Crafting orders", 1, true))
+    end)
+end)

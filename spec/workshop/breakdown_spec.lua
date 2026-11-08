@@ -35,6 +35,14 @@ describe("Workshop: profit breakdown", function()
         assert.truthy(text:find("Sold crafts", 1, true))
         assert.truthy(text:find("Crafting orders", 1, true))
         assert.truthy(text:find("Salvage", 1, true))
+        local keys = {}
+        for i, s in ipairs(wns.WorkshopUI.Sources()) do keys[i] = s.key end
+        assert.same({ "sales", "orders", "salvage" }, keys)
+        local title, lines = wns.WorkshopSummary.ChartTooltip({ day = WoWMock.now, total = b.total,
+            values = { sales = b.sales, orders = b.orders, salvage = b.salvage } })
+        assert.is_string(title)
+        assert.equals(4, #lines)                                    -- three sources and the total
+        assert.truthy(lines[2]:find("Crafting orders", 1, true))
     end)
 
     it("counts a sale in its own window even when the item was crafted earlier", function()

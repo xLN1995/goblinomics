@@ -11,9 +11,10 @@
 
 ### Changed
 - On WoW: Forever the Workshop shows cooldowns without the concentration
-  switch and the expansion filters, the farm editor lists zones and
-  instances in one list, and the warband bank stays out of the picture,
-  because Forever has none of these.
+  switch and the expansion filters and leaves crafting orders out of its
+  sub-tabs, profit split, chart and dashboard card, the farm editor lists
+  zones and instances in one list, and the warband bank stays out of the
+  picture, because Forever has none of these.
 
 ### Fixed
 - The connectors for TradeSkillMaster, Auctionator, CraftSim and GatherMate2
