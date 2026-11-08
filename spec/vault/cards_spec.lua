@@ -104,3 +104,33 @@ describe("Vault: dashboard cards", function()
         tab.onHide()
     end)
 end)
+
+describe("Vault: owners on WoW: Forever", function()
+    after_each(function() assert.same({}, WoWMock.errors) end)
+
+    local function boot(client)
+        local ns, vns = load_vault({ client = client, money = 5000000 })
+        ns.Price.RegisterSource(fake("tsm", 10, { market = {} }))
+        WoWMock.advance(3)
+        WoWMock.flush()
+        return ns, vns
+    end
+
+    local function keys(list)
+        local out = {}
+        for i, e in ipairs(list) do out[i] = e.key end
+        return out
+    end
+
+    it("lists the warband bank on retail", function()
+        local ns, vns = boot(nil)
+        assert.same({ "xLN-Blackrock", "warband" }, keys(vns.VaultUI.Rows(vns.Networth.Get())))
+        assert.same({ "xLN-Blackrock", "warband" }, keys(vns.VaultCards.CharDeltas(ns.Dashboard.Context(7))))
+    end)
+
+    it("knows no warband bank on Forever", function()
+        local ns, vns = boot("forever")
+        assert.same({ "xLN-Blackrock" }, keys(vns.VaultUI.Rows(vns.Networth.Get())))
+        assert.same({ "xLN-Blackrock" }, keys(vns.VaultCards.CharDeltas(ns.Dashboard.Context(7))))
+    end)
+end)

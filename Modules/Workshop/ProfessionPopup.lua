@@ -173,7 +173,7 @@ local function Build()
     local W, Theme = API.Widgets, API.Theme
     local S = Theme.space
     frame = W.Dialog({ name = "GoblinomicsProfessionPopup", width = WIDTH, height = Popup.Height(1),
-        title = L["Concentration & cooldowns"],
+        title = ns.Professions.Title(),
         onClose = function() generation = generation + 1 end,
         buttons = {
             { text = L["Open Workshop"], onClick = function()
@@ -251,7 +251,8 @@ function Popup.Enable(m)
     module = m
     local API = ns.API
     API.On("WORKSHOP_PROFESSIONS", Popup.Refresh, OWNER)
-    API.RegisterCommand("conc", Popup.Toggle, ns.L["- concentration and cooldowns of every character"])
+    API.RegisterCommand("conc", Popup.Toggle, API.Flavor.IsForever() and ns.L["- cooldowns of every character"]
+        or ns.L["- concentration and cooldowns of every character"])
 end
 
 function Popup.Disable()

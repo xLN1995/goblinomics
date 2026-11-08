@@ -321,6 +321,14 @@ describe("Workshop: concentration and cooldowns", function()
         WoWMock.flush()
         assert.is_false(wns.ProfessionPopup.IsOpen())
     end)
+    it("builds the mode switch and the expansion dropdown above the list", function()
+        local page = wns.WorkshopProfessions.Build(CreateFrame("Frame"))
+        assert.is_table(page.mode)
+        assert.is_table(page.expansion)
+        local S = ns.API.Theme.space
+        assert.same({ "TOPLEFT", 0, -(S.CONTROL_H + S.SM + S.ROW) }, page.list.box._points[1])
+        assert.equals("Concentration & cooldowns", wns.Professions.Title())
+    end)
 end)
 
 describe("Workshop: professions on WoW: Forever (no expansions, no concentration)", function()
@@ -379,6 +387,20 @@ describe("Workshop: professions on WoW: Forever (no expansions, no concentration
         assert.is_nil(texts["Notify at concentration"])
         assert.is_nil(texts["Concentration value over (days)"])
         assert.is_true(texts["Toast while playing"])
+        assert.is_true(texts["When a cooldown is ready."])
         assert.is_true(texts["COOLDOWNS"])   -- group titles are upper case
+    end)
+
+    it("anchors the list right below the hint and names toasts and tooltips after the cooldowns", function()
+        local page = wns.WorkshopProfessions.Build(CreateFrame("Frame"))
+        local S = ns.API.Theme.space
+        assert.same({ "TOPLEFT", 0, -S.ROW }, page.list.box._points[1])
+        assert.equals("Cooldowns", wns.Professions.Title())
+        local root = GoblinomicsWorkshopDB
+        root.chars["Alt-Realm"] = { name = "Alt", cooldowns = { [700] = { name = "Transmute: Ore", profession = "Alchemy",
+            readyAt = WoWMock.now - 1 } } }
+        local left, right = wns.ProfessionNotices.TooltipText(root, root.settings, WoWMock.now)
+        assert.equals("Cooldowns", left)
+        assert.is_truthy(right:find("1 ready"))
     end)
 end)

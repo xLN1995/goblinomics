@@ -265,7 +265,7 @@ function View.Build(parent)
     end
 
     page.list = W.ScrollList(f, { rowHeight = S.ROW, init = InitRow })
-    page.list.box:SetPoint("TOPLEFT", 0, -(S.CONTROL_H + S.SM + S.ROW))
+    page.list.box:SetPoint("TOPLEFT", 0, -(forever and S.ROW or (S.CONTROL_H + S.SM + S.ROW)))
     page.list.box:SetPoint("BOTTOMRIGHT", 0, 0)
     page.empty = W.EmptyState(page.list.box, L["No profession data yet: open a profession window once on each character."])
 
@@ -304,7 +304,7 @@ local function RegisterCard()
     API.UI:RegisterWidget({
         id = "workshop.concentration", order = 42, size = "quarter", height = 120,
         events = { "WORKSHOP_PROFESSIONS" },
-        title = function() return API.Flavor.IsForever() and L["Cooldowns"] or L["Concentration & cooldowns"] end,
+        title = function() return ns.Professions.Title() end,
         build = function(f)
             f.lines = {}
             for i = 1, ROWS do
@@ -344,7 +344,7 @@ end
 
 function View.Enable()
     ns.WorkshopUI.AddView({ id = "professions", noPeriod = true,
-        label = function() return ns.API.Flavor.IsForever() and ns.L["Cooldowns"] or ns.L["Concentration & cooldowns"] end,
+        label = function() return ns.Professions.Title() end,
         build = function(parent) return View.Build(parent) end })
     RegisterCard()
 end

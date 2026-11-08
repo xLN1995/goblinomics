@@ -310,11 +310,10 @@ local function BuildSettings(parent, y)
     local function changed()
         API.Emit("WORKSHOP_PROFESSIONS", {})
     end
-    if forever then
-        form:Group(L["Cooldowns"], L["Recipes with a daily cooldown or charges, found when a profession window opens."])
-    else
-        form:Group(L["Concentration & cooldowns"],
-            L["Concentration is read when you log in or open a profession window, and computed from then on."])
+    form:Group(ns.Professions.Title(), forever
+        and L["Recipes with a daily cooldown or charges, found when a profession window opens."]
+        or L["Concentration is read when you log in or open a profession window, and computed from then on."])
+    if not forever then
         form:Slider({ label = L["Notify at concentration"],
             description = L["A notice comes when a character's concentration reaches this value."],
             min = 100, max = 1000, step = 50,
@@ -325,7 +324,8 @@ local function BuildSettings(parent, y)
             end })
     end
     form:Toggle({ label = L["Toast while playing"],
-        description = L["When a character's concentration is full or a cooldown is ready."],
+        description = forever and L["When a cooldown is ready."]
+            or L["When a character's concentration is full or a cooldown is ready."],
         get = function() return settings.notifyToast end,
         set = function(on) settings.notifyToast = on end })
     form:Toggle({ label = L["Overview at login"],
@@ -353,7 +353,8 @@ local function BuildSettings(parent, y)
     end
     table.sort(chars)
     if #chars > 0 then
-        form:Group(L["Characters"], L["Switched off characters are left out of concentration and cooldowns."])
+        form:Group(L["Characters"], forever and L["Switched off characters are left out of the cooldowns."]
+            or L["Switched off characters are left out of concentration and cooldowns."])
         for _, charKey in ipairs(chars) do
             form:Toggle({ label = UI.ShortName(charKey), description = charKey,
                 get = function() return not settings.professionsHidden[charKey] end,

@@ -54,9 +54,12 @@ local function Rows(result)
         rows[#rows + 1] = { key = charKey, char = c, last = last }
     end
     table.sort(rows, function(a, b) return a.char.wealth > b.char.wealth end)
-    rows[#rows + 1] = { key = "warband", warband = result.warband, last = result.warband.seenAt }
+    if not API.Flavor.IsForever() then   -- no warband bank there
+        rows[#rows + 1] = { key = "warband", warband = result.warband, last = result.warband.seenAt }
+    end
     return rows
 end
+VUI.Rows = Rows
 
 local function Pct(v) return API.Format:Percent(v) end
 

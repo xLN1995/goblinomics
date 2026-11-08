@@ -72,9 +72,11 @@ function Cards.CharDeltas(context)
         local s = startChars[key]
         list[#list + 1] = { key = key, name = c.name, class = c.class, gold = c.gold, delta = s and (c.gold - s.gold) or nil }
     end
-    local wb = start and start.warband
-    list[#list + 1] = { key = "warband", name = L["Warband bank"], gold = r.warband.gold,
-        delta = wb and (r.warband.gold - wb.gold) or nil }
+    if not ns.API.Flavor.IsForever() then   -- no warband bank there
+        local wb = start and start.warband
+        list[#list + 1] = { key = "warband", name = L["Warband bank"], gold = r.warband.gold,
+            delta = wb and (r.warband.gold - wb.gold) or nil }
+    end
     table.sort(list, function(a, b)
         if a.gold ~= b.gold then return a.gold > b.gold end
         return a.name < b.name

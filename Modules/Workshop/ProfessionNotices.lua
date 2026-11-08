@@ -41,9 +41,9 @@ function Notices.Pending(root, settings, now)
 end
 
 local function Toast(d)
-    local API, L = ns.API, ns.L
+    local API = ns.API
     local text = d.kind == "cooldown" and API.Lf("%s is ready", Label(d)) or API.Lf("%s is full", Label(d))
-    API.UI:Toast({ title = L["Concentration & cooldowns"], text = text, icon = d.icon })
+    API.UI:Toast({ title = ns.Professions.Title(), text = text, icon = d.icon })
 end
 
 --- Toast what became due, then wait for the next entry (one timer).
@@ -90,7 +90,7 @@ end
 
 --- Tooltip line: "Concentration & cooldowns: 2 ready, next in 3h 12m".
 function Notices.TooltipText(root, settings, now)
-    local API, L = ns.API, ns.L
+    local API = ns.API
     local due, nextAt = 0, nil
     for _, d in ipairs(ns.Professions.Due(root, settings, now)) do
         if d.at <= now then due = due + 1 elseif not nextAt then nextAt = d.at end
@@ -99,7 +99,7 @@ function Notices.TooltipText(root, settings, now)
     local parts = {}
     if due > 0 then parts[#parts + 1] = API.Lf("%d ready", due) end
     if nextAt then parts[#parts + 1] = API.Lf("next in %s", API.Format:Remaining(nextAt - now)) end
-    return L["Concentration & cooldowns"], table.concat(parts, ", ")
+    return ns.Professions.Title(), table.concat(parts, ", ")
 end
 
 function Notices.Enable(m)

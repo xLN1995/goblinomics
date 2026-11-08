@@ -87,6 +87,12 @@ function Professions.CurrentExpansion(root)
     return CurrentExpansionName()
 end
 
+--- Name of the view, its card, settings group and notices: "Concentration & cooldowns",
+-- on WoW: Forever just "Cooldowns".
+function Professions.Title()
+    return API.Flavor.IsForever() and API.L["Cooldowns"] or API.L["Concentration & cooldowns"]
+end
+
 --- The expansion filter for concentration and cooldowns: nil / "current" means the
 -- current expansion, "all" everything, otherwise an expansion name.
 function Professions.ExpansionFilter(settings, root)
