@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- The connectors for TradeSkillMaster, Auctionator, CraftSim and GatherMate2
+  no longer make the game warn about a missing addon at login. Without their
+  addon they stay quiet, and the "What's new" window says which addon a
+  connector needs.
+
 ## [1.2.0] - 2026-10-29
 
 ### New modules

@@ -5,7 +5,8 @@
 ## Version: @project-version@
 ## Category: Goblinomics
 ## Group: Goblinomics
-## Dependencies: Goblinomics, TradeSkillMaster
+## Dependencies: Goblinomics
+## OptionalDeps: TradeSkillMaster
 ## IconTexture: Interface\AddOns\Goblinomics\Media\goblinomics_icon_64
 
 TSM.lua

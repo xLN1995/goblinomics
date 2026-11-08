@@ -97,11 +97,20 @@ function Changelog.ShouldAutoShow()
 end
 
 -- Modules ---------------------------------------------------------------------------------
---- "active", "installed" (enabled, loads later), "disabled" or "missing".
+--- Partner addon of a connector folder name: Goblinomics_Connector_TSM -> "TSM".
+local function Partner(addon)
+    return addon:match("^Goblinomics_Connector_(.+)$")
+end
+
+--- "active", "inactive" (a connector that loaded without its partner addon),
+-- "installed" (enabled, loads later), "disabled" or "missing".
 function Changelog.AddonState(addon)
     local api = C_AddOns
     if not api then return "missing" end
-    if api.IsAddOnLoaded and api.IsAddOnLoaded(addon) then return "active" end
+    if api.IsAddOnLoaded and api.IsAddOnLoaded(addon) then
+        if Partner(addon) and not ns.API.GetModule(addon) then return "inactive" end
+        return "active"
+    end
     if api.GetAddOnInfo then
         local _, _, _, _, reason = api.GetAddOnInfo(addon)
         if reason == "MISSING" then return "missing" end
@@ -114,6 +123,7 @@ end
 
 local STATE = {
     active = { text = function() return L["Active"] end, color = "accent" },
+    inactive = { text = function(addon) return ns.API.Lf("Needs %s", Partner(addon)) end, color = "gold" },
     installed = { text = function() return L["Installed"] end, color = "text" },
     disabled = { text = function() return L["Disabled"] end, color = "textDim" },
     missing = { text = function() return L["Not installed"] end, color = "gold" },
@@ -166,7 +176,7 @@ local function Render(content, entries, highlight)
             for _, m in ipairs(e.modules) do
                 local st = STATE[Changelog.AddonState(m.addon)]
                 local state = Theme.Text(content, "small", C[st.color])
-                state:SetText(st.text())
+                state:SetText(st.text(m.addon))
                 state:SetPoint("TOPRIGHT", 0, -y)
                 state:SetJustifyH("RIGHT")
                 content.lines[#content.lines + 1] = state

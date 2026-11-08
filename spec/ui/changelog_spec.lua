@@ -108,6 +108,21 @@ describe("UI: changelog", function()
         assert.is_true(ns.Changelog.Show(true))
     end)
 
+    it("tells for a loaded connector whether its partner addon is there", function()
+        local ns = load_core({ login = true })
+        -- the connector addon loads without GatherMate2 (optional dependency) and registers nothing
+        assert.equals("inactive", ns.Changelog.AddonState("Goblinomics_Connector_GatherMate2"))
+        ns.API.RegisterModule("Goblinomics_Connector_GatherMate2", { apiVersion = 1, name = "GatherMate2 Connector",
+            description = function() return "x" end })
+        assert.equals("active", ns.Changelog.AddonState("Goblinomics_Connector_GatherMate2"))
+        ns.CHANGELOG = { { version = "unreleased", modules = { { addon = "Goblinomics_Connector_CraftSim", text = "x" } },
+            sections = {} } }
+        assert.is_true(ns.Changelog.Show(true))
+        local texts = {}
+        for _, f in ipairs(WoWMock.frames) do if f._text then texts[f._text] = true end end
+        assert.is_true(texts["Needs CraftSim"])
+    end)
+
     it("has a footer with the version and a changelog button", function()
         local ns = login("v1.0.2", existing("1.0.2"))
         ns.UI.Show("dashboard")

@@ -5,7 +5,8 @@
 ## Version: @project-version@
 ## Category: Goblinomics
 ## Group: Goblinomics
-## Dependencies: Goblinomics, CraftSim
+## Dependencies: Goblinomics
+## OptionalDeps: CraftSim
 ## IconTexture: Interface\AddOns\Goblinomics\Media\goblinomics_icon_64
 
 CraftSim.lua
