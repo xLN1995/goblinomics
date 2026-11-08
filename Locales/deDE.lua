@@ -253,6 +253,7 @@ L["You get a notification whenever you loot one of these items in a session of t
 L["None"] = "Keine"
 L["Choose instance"] = "Instanz wählen"
 L["Choose the instance by expansion. The overview then shows its lockouts per character."] = "Wähle die Instanz nach Erweiterung. Die Übersicht zeigt dann ihre Sperren pro Charakter."
+L["Choose the instance. The overview then shows its lockouts per character."] = "Wähle die Instanz. Die Übersicht zeigt dann ihre Sperren pro Charakter."
 L["reset in %s"] = "Reset in %s"
 L["No lockout data yet: log in once with every character at max level."] = "Noch keine Sperrdaten: Logge dich einmal mit jedem Charakter auf Maximalstufe ein."
 L["Can still run"] = "Kann noch laufen"

@@ -1,7 +1,8 @@
 if GOBLINOMICS_CLIENT_BLOCKED then return end
 -- Modules/Gatherer/FarmEditor.lua
 -- Dialog to create or edit a farm: name, category, for raid and dungeon farms
--- the instance (menu by expansion from the Encounter Journal), for gathering and
+-- the instance (menu by expansion from the Encounter Journal; one flat list on
+-- WoW: Forever, which has no expansions), for gathering and
 -- fishing farms the zone and its nodes (several at once, from the node source, e.g.
 -- GatherMate2), highlight threshold and the expected highlights (items that always
 -- notify the player when looted in a session of this farm). Items are added by
@@ -85,18 +86,28 @@ local function Field(d, label, y, width, field, numeric, tooltipLines, parent)
     return box
 end
 
---- Instance choices by expansion (submenus) for raids or dungeons of the category.
+--- Instance choices by expansion (submenus) for raids or dungeons of the category;
+-- on WoW: Forever one flat list sorted by name.
 local function InstanceChoices()
     local L = ns.L
     local isRaid = form.category == "raid"
+    local flat = ns.API.Flavor.IsForever()
     local list = { { value = "none", label = L["None"] } }
     for _, expansion in ipairs(ns.Instances.Catalog(isRaid)) do
-        local children = {}
+        local children = flat and list or {}
         for _, inst in ipairs(expansion.instances) do children[#children + 1] = { value = inst.journalID, label = inst.name } end
-        list[#list + 1] = { label = expansion.name, children = children }
+        if not flat then list[#list + 1] = { label = expansion.name, children = children } end
+    end
+    if flat then
+        table.sort(list, function(a, b)
+            if a.value == "none" then return b.value ~= "none" end
+            if b.value == "none" then return false end
+            return a.label < b.label
+        end)
     end
     return list
 end
+FarmEditor.InstanceChoices = InstanceChoices
 
 local function SetInstance(journalID)
     form.instance = nil
@@ -122,9 +133,15 @@ end
 
 --- The zones with known nodes in a submenu per expansion (newest first, zones by
 -- name); zones of no known expansion last. Where the player stands plays no part.
+-- On WoW: Forever one flat list by name.
 local function ZoneChoices()
     local Nodes = ns.API.Nodes
     local list, groups = {}, {}
+    if ns.API.Flavor.IsForever() then
+        for _, id in ipairs(Nodes:Zones()) do list[#list + 1] = { value = id, label = ZoneLabel(id) } end
+        table.sort(list, function(a, b) return a.label < b.label end)
+        return list
+    end
     for _, id in ipairs(Nodes:Zones()) do
         local level = Nodes:ZoneExpansion(id) or -1
         groups[level] = groups[level] or {}
@@ -245,7 +262,9 @@ local function Build()
         return form.instance and form.instance.journalID or "none"
     end, SetInstance, { width = 260, placeholder = L["Choose instance"], emptyValue = "none",
         display = function() return form.instance and form.instance.name end, tooltip = L["Instance"],
-        tooltipLines = { L["Choose the instance by expansion. The overview then shows its lockouts per character."] } })
+        tooltipLines = { ns.API.Flavor.IsForever()
+            and L["Choose the instance. The overview then shows its lockouts per character."]
+            or L["Choose the instance by expansion. The overview then shows its lockouts per character."] } })
     d.instanceLabel = d:Row(L["Dungeon"], d.instance, y)
     -- gathering and fishing: zone in the same row, the node list below it
     d.zone = W.Dropdown(d.body, ZoneChoices, function() return form.zone end, function(v)

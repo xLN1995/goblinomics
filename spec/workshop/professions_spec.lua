@@ -322,3 +322,63 @@ describe("Workshop: concentration and cooldowns", function()
         assert.is_false(wns.ProfessionPopup.IsOpen())
     end)
 end)
+
+describe("Workshop: professions on WoW: Forever (no expansions, no concentration)", function()
+    after_each(function() assert.same({}, WoWMock.errors) end)
+
+    local ns, wns, P
+
+    before_each(function()
+        ns, wns = load_workshop({ client = "forever", before = function()
+            WoWMock.childProfessions = { { professionID = 2900, professionName = "Alchemy", parentProfessionID = 171,
+                parentProfessionName = "Alchemy", expansionName = "Classic" } }
+            WoWMock.childSkillLine = 2900
+            WoWMock.recipeIDs = { 700, 704 }
+            WoWMock.recipes[700] = { name = "Transmute: Ore", expansion = "Classic" }
+            WoWMock.recipes[704] = { name = "Jard's Peculiar Energy Source", profession = "Engineering",
+                expansion = "Wrath of the Lich King" }
+        end })
+        P = wns.Professions
+    end)
+
+    it("filters nothing by expansion and shows no expansion tags", function()
+        local root = GoblinomicsWorkshopDB
+        assert.equals("all", P.ExpansionFilter({}, root))
+        assert.equals("all", P.ExpansionFilter({ professionsExpansion = "Midnight" }, root))
+        local V = wns.WorkshopProfessions
+        assert.equals("", V.ExpansionTag("Midnight"))
+        local tag = V.ExpansionTag("Classic", "Engineering")
+        assert.truthy(tag:find("Engineering", 1, true))
+        assert.is_nil(tag:find("Classic", 1, true))
+        local title, lines = V.TooltipLines({ kind = "cooldown", cooldown = { name = "Jard's", readyAt = WoWMock.now + 60,
+            profession = "Engineering", expansion = "Wrath of the Lich King" } }, WoWMock.now)
+        assert.equals("Jard's", title)
+        assert.equals("Engineering", lines[#lines])
+    end)
+
+    it("shows cooldowns only: no mode switch, no expansion dropdown, cooldown titles", function()
+        local V = wns.WorkshopProfessions
+        assert.equals("cooldowns", V.Mode())
+        GoblinomicsWorkshopDB.settings.professionsMode = "concentration"
+        assert.equals("cooldowns", V.Mode())
+        local page = V.Build(CreateFrame("Frame"))
+        assert.is_nil(page.mode)
+        assert.is_nil(page.expansion)
+        page.Refresh()
+        local widget
+        for _, w in ipairs(ns.UI.SortedWidgets()) do if w.id == "workshop.concentration" then widget = w end end
+        assert.equals("Cooldowns", widget.title())
+    end)
+
+    it("offers no concentration settings", function()
+        local section
+        for _, s in ipairs(ns.UI.SortedSettings()) do if s.id == "workshop" then section = s end end
+        section.build(CreateFrame("Frame"), 0)
+        local texts = {}
+        for _, f in ipairs(WoWMock.frames) do if f._text then texts[f._text] = true end end
+        assert.is_nil(texts["Notify at concentration"])
+        assert.is_nil(texts["Concentration value over (days)"])
+        assert.is_true(texts["Toast while playing"])
+        assert.is_true(texts["COOLDOWNS"])   -- group titles are upper case
+    end)
+end)

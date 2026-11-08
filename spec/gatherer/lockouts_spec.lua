@@ -121,3 +121,25 @@ describe("Gatherer: lockouts", function()
         assert.equals(before + 2, WoWMock.raidInfoRequests)
     end)
 end)
+
+describe("Gatherer: instance choices on WoW: Forever", function()
+    after_each(function() assert.same({}, WoWMock.errors) end)
+
+    it("offers every raid in one flat list, sorted by name", function()
+        local pns = select(2, load_gatherer({ client = "forever", before = function()
+            WoWMock.journal = {
+                { name = "The War Within",
+                    raids = { { id = 1, name = "World Bosses", areaMapID = 0 },
+                        { id = 1296, name = "Liberation of Undermine", mapID = 2769, encounters = 8 } },
+                    dungeons = { { id = 1269, name = "The Stonevault", mapID = 2652, encounters = 4 } } },
+                { name = "Midnight", raids = { { id = 1300, name = "The Voidspire", mapID = 2900, encounters = 6 } },
+                    dungeons = {} },
+            }
+            WoWMock.journalTier = 2
+        end }))
+        pns.FarmEditor.Open(nil)
+        pns.FarmEditor.Form().category = "raid"
+        assert.same({ { value = "none", label = "None" }, { value = 1296, label = "Liberation of Undermine" },
+            { value = 1300, label = "The Voidspire" } }, pns.FarmEditor.InstanceChoices())
+    end)
+end)

@@ -300,23 +300,30 @@ local function BuildSettings(parent, y)
     number(L["Keep craft details (days)"], L["Older crafts and sales are kept as totals per recipe."], "retentionDays")
     number(L["Open stock for (days)"],
         L["Crafted items that are not sold after this time leave the open stock; a later sale still counts."], "lotDays")
-    number(L["Concentration value over (days)"], L["Period for the gold value of one concentration point."],
-        "concentrationDays")
+    local forever = API.Flavor.IsForever()   -- no concentration on WoW: Forever
+    if not forever then
+        number(L["Concentration value over (days)"], L["Period for the gold value of one concentration point."],
+            "concentrationDays")
+    end
     form:Note(L["Realized profit needs the Ledger module: it reports the auction house sales."])
 
     local function changed()
         API.Emit("WORKSHOP_PROFESSIONS", {})
     end
-    form:Group(L["Concentration & cooldowns"],
-        L["Concentration is read when you log in or open a profession window, and computed from then on."])
-    form:Slider({ label = L["Notify at concentration"],
-        description = L["A notice comes when a character's concentration reaches this value."],
-        min = 100, max = 1000, step = 50,
-        get = function() return settings.concentrationThreshold end,
-        set = function(v)
-            settings.concentrationThreshold = v
-            changed()
-        end })
+    if forever then
+        form:Group(L["Cooldowns"], L["Recipes with a daily cooldown or charges, found when a profession window opens."])
+    else
+        form:Group(L["Concentration & cooldowns"],
+            L["Concentration is read when you log in or open a profession window, and computed from then on."])
+        form:Slider({ label = L["Notify at concentration"],
+            description = L["A notice comes when a character's concentration reaches this value."],
+            min = 100, max = 1000, step = 50,
+            get = function() return settings.concentrationThreshold end,
+            set = function(v)
+                settings.concentrationThreshold = v
+                changed()
+            end })
+    end
     form:Toggle({ label = L["Toast while playing"],
         description = L["When a character's concentration is full or a cooldown is ready."],
         get = function() return settings.notifyToast end,

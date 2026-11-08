@@ -2,7 +2,9 @@ if GOBLINOMICS_CLIENT_BLOCKED then return end
 -- Modules/Workshop/WorkshopProfessions.lua
 -- "Concentration & cooldowns" view of the Workshop and its dashboard card. A switch
 -- shows either concentration or cooldowns, a dropdown the expansion (the current one
--- by default, the same for both and for the notices). Every character with an entry,
+-- by default, the same for both and for the notices). On WoW: Forever there is neither
+-- concentration nor an expansion: the view is "Cooldowns" without switch and dropdown.
+-- Every character with an entry,
 -- the one due first on top; under it the professions (icon, computed concentration
 -- as a bar, "full in") or the recipe cooldowns ("ready in", charges). A click on a
 -- character folds it. The profession and character filters apply, the period does
@@ -34,6 +36,7 @@ end
 --- "  - Midnight" style tag (a middle dot, or "Engineering, Wrath of the Lich King") in grey after a row's name.
 function View.ExpansionTag(expansion, profession)
     local Theme = ns.API.Theme
+    if ns.API.Flavor.IsForever() then expansion = nil end
     local parts = {}
     if profession then parts[#parts + 1] = profession end
     if expansion then parts[#parts + 1] = expansion end
@@ -44,6 +47,7 @@ end
 --- Tooltip lines of a profession or cooldown row (title, lines).
 function View.TooltipLines(data, now, valuePerPoint)
     local API, L = ns.API, ns.L
+    local forever = API.Flavor.IsForever()
     local Date = function(t) return API.Format:Date(t, "stamp") end
     local lines = {}
     if data.kind == "profession" then
@@ -62,7 +66,8 @@ function View.TooltipLines(data, now, valuePerPoint)
         end
         if p.readAt then lines[#lines + 1] = API.Lf("Read %s ago", API.Format:Remaining(now - p.readAt)) end
         lines[#lines + 1] = L["Log in with the character to read it again."]
-        return (p.name or "?") .. (p.expansion and (" - " .. p.expansion) or ""), lines
+        local expansion = not forever and p.expansion or nil
+        return (p.name or "?") .. (expansion and (" - " .. expansion) or ""), lines
     end
     local cd = data.cooldown
     if cd.readyAt then
@@ -75,8 +80,9 @@ function View.TooltipLines(data, now, valuePerPoint)
     if cd.count and cd.count > 1 then
         lines[#lines + 1] = API.Lf("Shares its cooldown with %d other recipes", cd.count - 1)
     end
-    if cd.profession or cd.expansion then
-        lines[#lines + 1] = table.concat({ cd.profession, cd.expansion }, ", ")
+    local expansion = not forever and cd.expansion or nil
+    if cd.profession or expansion then
+        lines[#lines + 1] = table.concat({ cd.profession, expansion }, ", ")
     end
     return cd.name or "?", lines
 end
@@ -139,8 +145,9 @@ function View.Rows(overview, filter, mode)
     return out
 end
 
---- Current mode of the view ("concentration" or "cooldowns").
+--- Current mode of the view ("concentration" or "cooldowns"; always cooldowns on WoW: Forever).
 function View.Mode()
+    if ns.API.Flavor.IsForever() then return "cooldowns" end
     return Settings().professionsMode == "cooldowns" and "cooldowns" or "concentration"
 end
 
@@ -156,6 +163,8 @@ function View.Build(parent)
         ns.WorkshopUI.Refresh()
         API.Emit("WORKSHOP_PROFESSIONS", {})
     end
+    local forever = API.Flavor.IsForever()
+    if not forever then
     page.mode = W.Segmented(f, { { value = "concentration", label = L["Concentration"] },
         { value = "cooldowns", label = L["Cooldowns"] } }, View.Mode, function(value)
             Settings().professionsMode = value
@@ -175,8 +184,9 @@ function View.Build(parent)
         changed()
     end, { size = "L" })
     page.expansion:SetPoint("TOPRIGHT", f, "TOPRIGHT", 0, 0)
+    end
     local hint = Theme.Text(f, "small", C.textDim)
-    hint:SetPoint("TOPLEFT", 0, -(S.CONTROL_H + S.SM))
+    hint:SetPoint("TOPLEFT", 0, forever and 0 or -(S.CONTROL_H + S.SM))
     hint:SetPoint("RIGHT", f, "RIGHT", 0, 0)
     hint:SetJustifyH("LEFT")
     page.hint = hint
@@ -270,7 +280,7 @@ function View.Build(parent)
     function page.Refresh(filter)
         local root = ns.Workshop.db.root
         local mode = View.Mode()
-        page.mode:Refresh()
+        if page.mode then page.mode:Refresh() end
         page.hint:SetText(mode == "cooldowns" and L["Recipes with a daily cooldown or charges, found when a profession window opens."]
             or L["Concentration is read when you log in or open a profession window, and computed from then on."])
         local rows = View.Rows(ns.Professions.Overview(root, Settings(), time()), filter, mode)
@@ -294,7 +304,7 @@ local function RegisterCard()
     API.UI:RegisterWidget({
         id = "workshop.concentration", order = 42, size = "quarter", height = 120,
         events = { "WORKSHOP_PROFESSIONS" },
-        title = function() return L["Concentration & cooldowns"] end,
+        title = function() return API.Flavor.IsForever() and L["Cooldowns"] or L["Concentration & cooldowns"] end,
         build = function(f)
             f.lines = {}
             for i = 1, ROWS do
@@ -334,7 +344,7 @@ end
 
 function View.Enable()
     ns.WorkshopUI.AddView({ id = "professions", noPeriod = true,
-        label = function() return ns.L["Concentration & cooldowns"] end,
+        label = function() return ns.API.Flavor.IsForever() and ns.L["Cooldowns"] or ns.L["Concentration & cooldowns"] end,
         build = function(parent) return View.Build(parent) end })
     RegisterCard()
 end

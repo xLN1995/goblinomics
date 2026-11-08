@@ -120,6 +120,7 @@ end
 
 -- Bank and warband ------------------------------------------------------------
 local function HasWarbandAccess()
+    if ns.API.Flavor.IsForever() then return false end   -- no warband bank there
     if C_PlayerInfo and C_PlayerInfo.HasAccountInventoryLock then
         return C_PlayerInfo.HasAccountInventoryLock() == true
     end

@@ -69,3 +69,16 @@ describe("Core/EntryPoints", function()
         assert.equals(0, #ns.Perf.Summary())
     end)
 end)
+
+describe("Core: entry points on WoW: Forever", function()
+    it("knows no warband bank: no tooltip line, nothing tracked", function()
+        local ns = load_core({ login = true, client = "forever", money = 10000 })
+        WoWMock.warband = 20000
+        assert.is_nil(ns.MoneyTracker.GetWarband())
+        GameTooltip:SetOwner(nil)   -- the mock keeps lines across specs
+        ns.EntryPoints.FillTooltip(GameTooltip)
+        local text = table.concat(GameTooltip.lines, "\n")
+        assert.truthy(text:find("Character=", 1, true))
+        assert.is_nil(text:find("Warband bank=", 1, true))
+    end)
+end)

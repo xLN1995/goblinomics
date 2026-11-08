@@ -23,6 +23,7 @@ local leaving = false
 local IsSecret = Restriction.IsSecret
 
 local function CanAccessWarband()
+    if ns.Flavor.IsForever() then return false end   -- no warband bank there
     if not (C_Bank and C_Bank.FetchDepositedMoney and Enum and Enum.BankType) then
         return false
     end

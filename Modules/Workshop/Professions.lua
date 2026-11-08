@@ -90,6 +90,7 @@ end
 --- The expansion filter for concentration and cooldowns: nil / "current" means the
 -- current expansion, "all" everything, otherwise an expansion name.
 function Professions.ExpansionFilter(settings, root)
+    if API.Flavor.IsForever() then return "all" end   -- no expansions there
     local value = settings and settings.professionsExpansion
     if value == nil or value == "current" then return Professions.CurrentExpansion(root) or "all" end
     return value

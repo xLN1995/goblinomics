@@ -168,6 +168,7 @@ local LDB_NAME = "Goblinomics"
 local ldb
 
 local function WarbandMoney()
+    if ns.Flavor.IsForever() then return nil end   -- no warband bank there
     local tracked = ns.MoneyTracker and ns.MoneyTracker.GetWarband()
     if tracked then return tracked end
     if C_Bank and C_Bank.FetchDepositedMoney and Enum and Enum.BankType

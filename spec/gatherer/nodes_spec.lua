@@ -29,13 +29,13 @@ describe("Gatherer: gathering nodes", function()
         WoWMock.fire("LOOT_CLOSED")
     end
 
-    local function boot(withSource)
+    local function boot(withSource, client)
         if withSource then
             C.gathermate({ [2395] = { Mining = { { 0.1, 0.2, 1249 }, { 0.3, 0.3, 1249 }, { 0.5, 0.5, 1250 } },
                 ["Herb Gathering"] = { { 0.4, 0.4, 1481 } } } },
                 { Mining = { [1249] = "Umbral Tin", [1250] = "Umbral Tin Seam" }, ["Herb Gathering"] = { [1481] = "Argentleaf" } })
         end
-        ns, pns = load_gatherer({ before = function()
+        ns, pns = load_gatherer({ client = client, before = function()
             if withSource then
                 load_addon_file(C.GM2.path, C.GM2.addon, {})
                 WoWMock.fire("ADDON_LOADED", C.GM2.addon)
@@ -179,6 +179,17 @@ describe("Gatherer: gathering nodes", function()
             pns.FarmEditor.Open(nil)
             assert.is_false(pns.FarmEditor.ShowsNodes())
             assert.is_nil(pns.FarmEditor.Form().zone)
+        end)
+    end)
+
+    describe("on WoW: Forever (no expansions)", function()
+        before_each(function() boot(true, "forever") end)
+
+        it("offers the zones as one flat list", function()
+            _G.EXPANSION_NAME11 = "Midnight"
+            WoWMock.maps[2395] = { name = "Eversong Woods", left = 0, top = 0, width = 1, height = 1 }
+            assert.same({ { value = 2395, label = "Eversong Woods" } }, pns.FarmEditor.ZoneChoices())
+            _G.EXPANSION_NAME11 = nil
         end)
     end)
 end)
