@@ -1,4 +1,4 @@
-## Interface: 120100, 120105
+## Interface: 120100, 120105, 16001
 ## Title: |cff3fbf3fGoblinomics|r Insights
 ## Notes: History, cash flow and reports; loads when opened
 ## Author: xLN

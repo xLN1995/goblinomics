@@ -54,6 +54,7 @@ read_globals = {
     "CreateDataProvider", "CreateScrollBoxListLinearView",
     -- Global functions
     "GetBuildInfo", "GetLocale", "GetMoney", "GetTime", "GetServerTime", "IsLoggedIn",
+    "WOW_PROJECT_ID", "WOW_PROJECT_MAINLINE", "WOW_PROJECT_CAMELOT",
     "InCombatLockdown", "UnitName", "UnitGUID", "UnitClass", "UnitFactionGroup",
     "GetNormalizedRealmName", "GetRealmName", "IsFishingLoot", "PlaySound", "SOUNDKIT",
     "UpdateAddOnMemoryUsage", "GetAddOnMemoryUsage", "GetFramerate", "ReloadUI",

@@ -1,4 +1,4 @@
-## Interface: 120100, 120105
+## Interface: 120100, 120105, 16001
 ## Title: |cff3fbf3fGoblinomics|r Auctionator Connector
 ## Notes: Price source via Auctionator.API.v1
 ## Author: xLN

@@ -1,4 +1,4 @@
-## Interface: 120100, 120105
+## Interface: 120100, 120105, 16001
 ## Title: |cff3fbf3fGoblinomics|r Flips
 ## Notes: Auction house flips: items bought and resold, profit, sale rate, holding time
 ## Author: xLN

@@ -1,4 +1,4 @@
-## Interface: 120100, 120105
+## Interface: 120100, 120105, 16001
 ## Title: |cff3fbf3fGoblinomics|r
 ## Notes: Track. Analyze. Profit. Make Gallywix Jealous.
 ## Author: xLN
@@ -28,6 +28,7 @@ Libs\LibSerialize\LibSerialize.lua
 
 # Core foundation
 Core\Init.lua
+Core\Flavor.lua
 Core\Locale.lua
 
 # Locales (tables register at load, activation happens at ADDON_LOADED)

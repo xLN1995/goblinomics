@@ -122,6 +122,11 @@ function mock.reset()
     mock.profileStep = 0.01
     mock.player = { name = "xLN", realm = "Blackrock", guid = "Player-1-0000ABCD", class = "WARRIOR", faction = "Horde",
         level = 80 }
+    -- client: Midnight 12.1 by default; set_client("forever") before the core loads
+    mock.interface, mock.version, mock.build = 120100, "12.1.0", "69933"
+    _G.WOW_PROJECT_MAINLINE = 1
+    _G.WOW_PROJECT_CAMELOT = 18
+    _G.WOW_PROJECT_ID = _G.WOW_PROJECT_MAINLINE
     _G.SlashCmdList = {}
     _G.Goblinomics = nil
     _G.GOBLINOMICS_CLIENT_BLOCKED = nil
@@ -239,7 +244,17 @@ _G.CreateColor = function(r, g, b, a) return { r = r, g = g, b = b, a = a } end
 _G.UIParent = { GetName = function() return "UIParent" end }
 
 _G.GetLocale = function() return mock.locale end
-_G.GetBuildInfo = function() return "12.1.0", "69933", "Sep 20 2026", 120100 end
+_G.GetBuildInfo = function() return mock.version, mock.build, "Sep 20 2026", mock.interface end
+--- Pretend another client. "forever" is WoW: Forever (interface 16001, project Camelot);
+-- a number is that interface with the project left at Mainline. Call before the core loads.
+function mock.set_client(client)
+    if client == "forever" then
+        mock.interface, mock.version, mock.build = 16001, "1.60.1", "70862"
+        _G.WOW_PROJECT_ID = _G.WOW_PROJECT_CAMELOT
+    elseif type(client) == "number" then
+        mock.interface = client
+    end
+end
 _G.GetMoney = function() return mock.money end
 _G.GetTime = function() return mock.now end
 _G.GetServerTime = function() return mock.now end

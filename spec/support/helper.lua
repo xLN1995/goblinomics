@@ -37,9 +37,13 @@ end
 --- Reset the mock and load the whole core in TOC order with one shared namespace.
 -- opts.boot = true also fires ADDON_LOADED("Goblinomics"); opts.login = true fires PLAYER_LOGIN too.
 -- opts.money sets the character's money before login (the baseline is taken at login).
+-- opts.client = "forever" (or an interface number) loads as that client; opts.prepare()
+-- runs after the reset and before any file, for globals the client gate reads.
 function load_core(opts)
     opts = opts or {}
     WoWMock.reset()
+    if opts.client then WoWMock.set_client(opts.client) end
+    if opts.prepare then opts.prepare() end
     if opts.money then WoWMock.set_money(opts.money) end
     if opts.db then _G.GoblinomicsDB = opts.db end
     local ns = {}
@@ -61,7 +65,7 @@ end
 --- Boot the core plus the Vault module (shared Vault namespace returned as vns).
 function load_vault(opts)
     opts = opts or {}
-    local ns = load_core({ boot = true, money = opts.money or 1 })
+    local ns = load_core({ boot = true, money = opts.money or 1, client = opts.client })
     if opts.before then opts.before(ns) end
     local vns = {}
     for _, file in ipairs(toc_files("Modules/Vault/Goblinomics_Vault.toc", "Modules/Vault/")) do
@@ -78,7 +82,7 @@ end
 --- Boot the core plus the Ledger module (shared Ledger namespace returned as lns).
 function load_ledger(opts)
     opts = opts or {}
-    local ns = load_core({ boot = true, money = opts.money or 100000 })
+    local ns = load_core({ boot = true, money = opts.money or 100000, client = opts.client })
     if opts.before then opts.before(ns) end
     local lns = {}
     for _, file in ipairs(toc_files("Modules/Ledger/Goblinomics_Ledger.toc", "Modules/Ledger/")) do
@@ -96,7 +100,7 @@ end
 -- opts.before(ns, lns) runs after the Ledger is loaded, before Flips.
 function load_flips(opts)
     opts = opts or {}
-    local ns = load_core({ boot = true, money = opts.money or 100000 })
+    local ns = load_core({ boot = true, money = opts.money or 100000, client = opts.client })
     local lns = {}
     for _, file in ipairs(toc_files("Modules/Ledger/Goblinomics_Ledger.toc", "Modules/Ledger/")) do
         load_addon_file(file, "Goblinomics_Ledger", lns)
@@ -116,7 +120,7 @@ end
 --- Boot the core plus the Gatherer module (shared Gatherer namespace returned as pns).
 function load_gatherer(opts)
     opts = opts or {}
-    local ns = load_core({ boot = true, money = opts.money or 100000 })
+    local ns = load_core({ boot = true, money = opts.money or 100000, client = opts.client })
     if opts.before then opts.before(ns) end
     local pns = {}
     for _, file in ipairs(toc_files("Modules/Gatherer/Goblinomics_Gatherer.toc", "Modules/Gatherer/")) do
@@ -135,7 +139,7 @@ end
 -- Returns core ns, workshop ns, ledger ns (or nil).
 function load_workshop(opts)
     opts = opts or {}
-    local ns = load_core({ boot = true, money = opts.money or 100000 })
+    local ns = load_core({ boot = true, money = opts.money or 100000, client = opts.client })
     if opts.before then opts.before(ns) end
     local lns
     if opts.ledger then
@@ -160,7 +164,7 @@ end
 -- load-on-demand Insights addon. Returns core ns, insights ns, { vault, ledger }.
 function load_insights(opts)
     opts = opts or {}
-    local ns = load_core({ boot = true, money = opts.money or 1000000 })
+    local ns = load_core({ boot = true, money = opts.money or 1000000, client = opts.client })
     WoWMock.lod.Goblinomics_Insights = true
     local mods = {}
     for _, m in ipairs({ { "Modules/Vault/Goblinomics_Vault.toc", "Modules/Vault/", "Goblinomics_Vault", "vault" },
@@ -187,7 +191,7 @@ end
 -- Returns core ns, import ns, { ledger, workshop }.
 function load_import(opts)
     opts = opts or {}
-    local ns = load_core({ boot = true, money = opts.money or 100000 })
+    local ns = load_core({ boot = true, money = opts.money or 100000, client = opts.client })
     if opts.before then opts.before(ns) end
     WoWMock.lod.Goblinomics_Import = true
     local mods = {}
@@ -214,7 +218,7 @@ end
 -- Returns core ns, link ns, vault ns.
 function load_link(opts)
     opts = opts or {}
-    local ns = load_core({ boot = true, money = opts.money or 100000 })
+    local ns = load_core({ boot = true, money = opts.money or 100000, client = opts.client })
     if opts.before then opts.before(ns) end
     WoWMock.lod.Goblinomics_Link = true
     local vns = {}

@@ -1,4 +1,4 @@
-## Interface: 120100, 120105
+## Interface: 120100, 120105, 16001
 ## Title: |cff3fbf3fGoblinomics|r Workshop
 ## Notes: Craft log, cost snapshots, FIFO profit, concentration value, crafting orders
 ## Author: xLN
