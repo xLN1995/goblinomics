@@ -801,6 +801,7 @@ L["Active"] = "Aktiv"
 L["Installed"] = "Installiert"
 L["Disabled"] = "Deaktiviert"
 L["Not installed"] = "Nicht installiert"
+L["Needs %s"] = "Braucht %s"
 L["Cannot open the changelog in combat."] = "Die Änderungen können im Kampf nicht geöffnet werden."
 
 -- Flips

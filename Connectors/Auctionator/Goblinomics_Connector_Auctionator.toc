@@ -5,7 +5,8 @@
 ## Version: @project-version@
 ## Category: Goblinomics
 ## Group: Goblinomics
-## Dependencies: Goblinomics, Auctionator
+## Dependencies: Goblinomics
+## OptionalDeps: Auctionator
 ## IconTexture: Interface\AddOns\Goblinomics\Media\goblinomics_icon_64
 
 Auctionator.lua

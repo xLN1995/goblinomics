@@ -21,6 +21,9 @@ ns.CHANGELOG = {
             { title = "Changed", items = {
                 "On WoW: Forever the Workshop shows cooldowns without the concentration switch and the expansion filters, the farm editor lists zones and instances in one list, and the warband bank stays out of the picture, because Forever has none of these.",
             } },
+            { title = "Fixed", items = {
+                "The connectors for TradeSkillMaster, Auctionator, CraftSim and GatherMate2 no longer make the game warn about a missing addon at login. Without their addon they stay quiet, and the \"What's new\" window says which addon a connector needs.",
+            } },
         },
     },
     {
