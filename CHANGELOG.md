@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.3.1] - 2026-11-25
 
 ### Fixed
 - The Journalator import booked items you bought or bought back from a
