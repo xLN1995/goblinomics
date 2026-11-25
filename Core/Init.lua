@@ -73,12 +73,38 @@ API.Print = function(msg, force) return ns.Print(msg, force) end
 -------------------------------------------------------------------------------
 -- Identity
 -------------------------------------------------------------------------------
---- "Name-Realm" of the current character. Reliable from PLAYER_LOGIN on.
-function ns.CharKey()
-    local name = UnitName("player") or "Unknown"
+--- True on clients with region-wide unique character names (WoW: Forever). The
+-- realm there is an internal shard name that Blizzard may change at any time.
+function ns.RegionalNames()
+    return RegionalUniqueNamesEnabled ~= nil and RegionalUniqueNamesEnabled() == true
+end
+
+local function RuleActive(rule)
+    return rule ~= nil and C_GameRules ~= nil and C_GameRules.IsGameRuleActive(rule) == true
+end
+
+--- Realm part of character keys. With regional names the ruleset group
+-- (PvE, PvP, RP, RPPvP, HC) like Auctionator and AceDB, never containing "-".
+function ns.RealmKey()
+    if ns.RegionalNames() then
+        local rules = Enum and Enum.GameRule or {}
+        if RuleActive(rules.HardcoreRuleset) then return "HC" end
+        local rp, pvp = RuleActive(rules.RPRuleset), RuleActive(rules.PvPRuleset)
+        if rp and pvp then return "RPPvP" end
+        if rp then return "RP" end
+        if pvp then return "PvP" end
+        return "PvE"
+    end
     local realm = GetNormalizedRealmName and GetNormalizedRealmName()
     if not realm or realm == "" then
         realm = (GetRealmName and GetRealmName() or "Unknown"):gsub("[%s%-]", "")
     end
-    return name .. "-" .. realm
+    return realm
 end
+
+--- "Name-Realm" of the current character. Reliable from PLAYER_LOGIN on.
+function ns.CharKey()
+    return (UnitName("player") or "Unknown") .. "-" .. ns.RealmKey()
+end
+API.RealmKey = function() return ns.RealmKey() end
+API.RegionalNames = function() return ns.RegionalNames() end

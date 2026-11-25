@@ -102,4 +102,16 @@ describe("Import: TSM Accounting", function()
         assert.equals(0, #ins.Import.List())
         assert.equals(1, #mods.ledger.Store.Query({}))
     end)
+
+    it("maps characters by name alone with region-wide names (WoW: Forever)", function()
+        local Import = ins.Import
+        assert.equals("Alt-Blackrock", Import.CharKey("Alt", "Blackrock"))
+        assert.equals("Alt-Other", Import.CharKey("Alt-Other", "Blackrock"))
+        WoWMock.regionalNames = true
+        WoWMock.gameRules[Enum.GameRule.PvPRuleset] = true
+        Goblinomics.API.v1.DB.List()[1].root.chars["Nimble-PvP"] = { name = "Nimble" }
+        assert.equals("Nimble-PvP", Import.CharKey("Nimble", "CAMWOWEU5Realm6PvP"))
+        assert.equals("Nimble-PvP", Import.CharKey("Nimble-CAMWOWEU5Realm6PvP", "x"))
+        assert.equals("Stranger-PvP", Import.CharKey("Stranger", "CAMWOWEU5Realm6PvP"))
+    end)
 end)

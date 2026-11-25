@@ -60,17 +60,16 @@ end
 
 --- Add the bookings and auction events of decoded sections to a batch.
 function Journalator.Map(sections, batch, stats)
-    local own = ns.Import.OwnCharacters()
+    local own, byName = ns.Import.OwnCharacters(), ns.Import.OwnByName()
     local entries, events = batch.entries, batch.events
     local function CharOf(e)
         local s = e.source
         if type(s) ~= "table" or not s.character then return nil end
-        return s.character .. "-" .. ns.Import.Realm(s.realm)
+        return ns.Import.CharKey(s.character, s.realm, byName)
     end
     local function IsOwn(name, e)
         if not name or name == "" then return false end
-        local realm = type(e.source) == "table" and ns.Import.Realm(e.source.realm) or ""
-        local key = name:find("-", 1, true) and name or (name .. "-" .. realm)
+        local key = ns.Import.CharKey(name, type(e.source) == "table" and e.source.realm or "", byName)
         return own[key:lower()] ~= nil
     end
     local function Key(e) return e.itemLink and API.ItemKey.FromLink(e.itemLink) or nil end

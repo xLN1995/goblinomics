@@ -62,7 +62,7 @@ local function Money(v) return math.floor(tonumber(v) or 0) end
 
 --- Batch { entries, events } and stats { count, from, to } of the whole database.
 function TSM.Build(db)
-    local own = ns.Import.OwnCharacters()
+    local own, byName = ns.Import.OwnCharacters(), ns.Import.OwnByName()
     local entries, events = {}, {}
     local stats = { count = 0 }
     local function Seen(t)
@@ -71,12 +71,12 @@ function TSM.Build(db)
         stats.to = math.max(stats.to or t, t)
     end
     for realmName, kinds in pairs(TSM.Realms(db)) do
-        local realm = ns.Import.Realm(realmName)
-        local function Char(player) return player and player ~= "" and (player .. "-" .. realm) or nil end
+        local function Char(player)
+            return player and player ~= "" and ns.Import.CharKey(player, realmName, byName) or nil
+        end
         local function IsOwn(name)
             if not name or name == "" then return false end
-            local key = name:find("-", 1, true) and name or (name .. "-" .. realm)
-            return own[key:lower()] ~= nil
+            return own[ns.Import.CharKey(name, realmName, byName):lower()] ~= nil
         end
         local function Add(e)
             if e.char and e.time and e.amount and e.amount ~= 0 then entries[#entries + 1] = e end

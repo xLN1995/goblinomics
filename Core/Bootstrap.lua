@@ -63,11 +63,38 @@ local function OnCoreLoaded()
     end
 end
 
+--- Character keys that changed identity, kept in root.charRenames. With region-wide
+-- unique names (WoW: Forever) the realm part was an internal shard name up to 1.3.0,
+-- until Blizzard emptied the realm name ("Name-"); the name alone identifies the
+-- character there, so an older key with the same name is the current character.
+local function CollectRenames(root, charKey)
+    if type(root.charRenames) ~= "table" then root.charRenames = {} end
+    if ns.RegionalNames() then
+        local name = UnitName("player")
+        for key, c in pairs(root.chars) do
+            if key ~= charKey and type(c) == "table" and name and (c.name or key:match("^([^%-]+)")) == name then
+                root.charRenames[key] = charKey
+            end
+        end
+    end
+    -- a key that is current again must not be renamed away; chains end at the last key
+    root.charRenames[charKey] = nil
+    for old, new in pairs(root.charRenames) do
+        local hops = 0
+        while root.charRenames[new] and hops < 10 do new, hops = root.charRenames[new], hops + 1 end
+        root.charRenames[old] = new
+    end
+    if next(root.charRenames) == nil then root.charRenames = nil end
+    return root.charRenames
+end
+
 local function OnLogin()
     ns.CoreEvents:Unregister("PLAYER_LOGIN")
-    local c = ns.coreDB:BindChar(ns.CharKey())
+    local charKey = ns.CharKey()
+    ns.DB.RenameChars(CollectRenames(ns.coreDB.root, charKey))
+    local c = ns.coreDB:BindChar(charKey)
     c.name = UnitName("player")
-    c.realm = GetNormalizedRealmName and GetNormalizedRealmName() or c.realm
+    c.realm = ns.RealmKey()
     c.class = select(2, UnitClass("player"))
     c.faction = UnitFactionGroup("player")
     c.lastLogin = time()

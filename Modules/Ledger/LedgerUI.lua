@@ -216,7 +216,13 @@ local function BuildTab(page)
     end
     dropdown(function()
         local list = {}
-        for _, key in ipairs(ledger.db.root.charIndex) do list[#list + 1] = { value = key, label = ShortName(key) } end
+        local seen = {}
+        for _, key in ipairs(ledger.db.root.charIndex) do
+            if not seen[key] then
+                seen[key] = true
+                list[#list + 1] = { value = key, label = ShortName(key) }
+            end
+        end
         return Choices(list, true, L["All characters"])
     end, "char")
     dropdown(function()

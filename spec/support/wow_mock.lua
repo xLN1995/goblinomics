@@ -122,6 +122,9 @@ function mock.reset()
     mock.profileStep = 0.01
     mock.player = { name = "xLN", realm = "Blackrock", guid = "Player-1-0000ABCD", class = "WARRIOR", faction = "Horde",
         level = 80 }
+    -- region-wide unique names (WoW: Forever) and active game rules { [rule] = true }
+    mock.regionalNames = false
+    mock.gameRules = {}
     -- client: Midnight 12.1 by default; set_client("forever") before the core loads
     mock.interface, mock.version, mock.build = 120100, "12.1.0", "69933"
     _G.WOW_PROJECT_MAINLINE = 1
@@ -281,6 +284,8 @@ _G.UnitClass = function() return "Warrior", mock.player.class end
 _G.UnitFactionGroup = function() return mock.player.faction end
 _G.GetNormalizedRealmName = function() return mock.player.realm end
 _G.GetRealmName = function() return mock.player.realm end
+_G.RegionalUniqueNamesEnabled = function() return mock.regionalNames end
+_G.C_GameRules = { IsGameRuleActive = function(rule) return mock.gameRules[rule] == true end }
 _G.BreakUpLargeNumbers = function(n)
     local s = tostring(n)
     local result = s:reverse():gsub("(%d%d%d)", "%1,"):reverse()
@@ -635,6 +640,7 @@ _G.EXPANSION_NAME11 = "Midnight"
 _G.EXPANSION_NAME12 = "Expansion 12"
 _G.Enum = {
     ExpansionLevel = { WarWithin = 10, Midnight = 11 },
+    GameRule = { PvPRuleset = 101, RPRuleset = 102, HardcoreRuleset = 103 },
     BagIndex = { Backpack = 0, Bag_1 = 1, Bag_2 = 2, Bag_3 = 3, Bag_4 = 4, ReagentBag = 5,
         CharacterBankTab_1 = 6, CharacterBankTab_2 = 7, CharacterBankTab_3 = 8, CharacterBankTab_4 = 9,
         CharacterBankTab_5 = 10, CharacterBankTab_6 = 11,
