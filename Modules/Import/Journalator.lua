@@ -10,7 +10,7 @@ if GOBLINOMICS_CLIENT_BLOCKED then return end
 --                   buyer -> AH/purchase; both into the auction log
 --   Posting         AH/deposit and an auction log post
 --   Failures        auction log expired / cancelled
---   Vendoring       Vendor sell/buy (unit price x count)
+--   Vendoring       Vendor sell/buy (unit price x count; purchase and buyback are buys)
 --   VendorRepairs   Repair
 --   Questing        Quest/reward (reward money)
 --   LootContainers  Loot/money
@@ -114,9 +114,12 @@ function Journalator.Map(sections, batch, stats)
             quantity = e.count, amount = 0 })
     end)
     Each("Vendoring", function(e)
-        local amount = (e.unitPrice or 0) * (e.count or 1)
-        Add(e, { category = "Vendor", sub = e.vendorType == "buy" and "buy" or "sell",
-            amount = e.vendorType == "buy" and -amount or amount, itemKey = Key(e), quantity = e.count })
+        -- Journalator: vendorType "sell", "purchase" or "buyback"; the unit price is
+        -- price / stack size and can be fractional
+        local amount = math.floor((e.unitPrice or 0) * (e.count or 1) + 0.5)
+        local sell = e.vendorType == "sell"
+        Add(e, { category = "Vendor", sub = sell and "sell" or "buy",
+            amount = sell and amount or -amount, itemKey = Key(e), quantity = e.count })
     end)
     Each("VendorRepairs", function(e) Add(e, { category = "Repair", sub = "repair", amount = -(e.money or 0) }) end)
     Each("Questing", function(e)

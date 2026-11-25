@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- The Journalator import booked items you bought or bought back from a
+  vendor as vendor sales, so they showed up as income. Remove your
+  Journalator import in `/gob import` and run it again to correct bookings
+  that were already imported.
+
 ## [1.3.0] - 2026-11-08
 
 ### Added
