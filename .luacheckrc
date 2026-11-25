@@ -56,7 +56,7 @@ read_globals = {
     "GetBuildInfo", "GetLocale", "GetMoney", "GetTime", "GetServerTime", "IsLoggedIn",
     "WOW_PROJECT_ID", "WOW_PROJECT_MAINLINE", "WOW_PROJECT_CAMELOT",
     "InCombatLockdown", "UnitName", "UnitGUID", "UnitClass", "UnitFactionGroup",
-    "GetNormalizedRealmName", "GetRealmName", "IsFishingLoot", "PlaySound", "SOUNDKIT",
+    "GetNormalizedRealmName", "GetRealmName", "RegionalUniqueNamesEnabled", "C_GameRules", "IsFishingLoot", "PlaySound", "SOUNDKIT",
     "UpdateAddOnMemoryUsage", "GetAddOnMemoryUsage", "GetFramerate", "ReloadUI",
     "DEFAULT_CHAT_FRAME", "UISpecialFrames", "PixelUtil", "STANDARD_TEXT_FONT", "MenuUtil",
     "MenuResponse", "Settings", "SettingsPanel", "HideUIPanel", "Minimap", "GameFontNormal",

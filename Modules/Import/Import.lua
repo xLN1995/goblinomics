@@ -45,6 +45,25 @@ function Import.OwnCharacters()
     return set
 end
 
+--- Own character keys by lower-case name alone (region-wide unique names).
+function Import.OwnByName()
+    local set = {}
+    for _, key in ipairs(API.KnownCharacters()) do set[(key:match("^([^%-]+)") or key):lower()] = key end
+    return set
+end
+
+--- Goblinomics key of a character named by another addon. With region-wide unique
+-- names (WoW: Forever) the realm is a shard name without identity: match by name
+-- (byName from Import.OwnByName) and fall back to the current realm key.
+function Import.CharKey(name, realm, byName)
+    if API.RegionalNames() then
+        local short = name:match("^([^%-]+)") or name
+        return (byName or Import.OwnByName())[short:lower()] or (short .. "-" .. API.RealmKey())
+    end
+    if name:find("-", 1, true) then return name end
+    return name .. "-" .. Import.Realm(realm)
+end
+
 --- Normalised realm ("Burning Legion" -> "BurningLegion", faction suffix dropped).
 function Import.Realm(realm)
     realm = (realm or ""):gsub("%s*%-%s*%a+$", "")

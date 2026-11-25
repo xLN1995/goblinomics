@@ -70,8 +70,9 @@ end
 
 --- True when name belongs to a known character of this account.
 function Rules.IsOwnCharacter(name)
-    local realm = GetNormalizedRealmName and GetNormalizedRealmName() or ""
-    local full = Rules.NormalizeName(name, realm)
+    -- region-wide unique names (WoW: Forever): a shard realm suffix carries no identity
+    if type(name) == "string" and ns.API.RegionalNames() then name = name:match("^([^%-]+)") end
+    local full = Rules.NormalizeName(name, ns.API.RealmKey())
     if not full then return false end
     for _, key in ipairs(ns.API.KnownCharacters()) do
         if key == full then return true end

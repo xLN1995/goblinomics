@@ -60,6 +60,58 @@ DB.Strip = Strip
 local Namespace = {}
 Namespace.__index = Namespace
 
+-- Character key renames { [old] = new } (set by the core at PLAYER_LOGIN, kept in
+-- GoblinomicsDB.charRenames). Applied once per namespace (root._renamed): every
+-- string value equal to old and every table key equal to old becomes new, so
+-- chars[old], record fields (char, seenBy), per-character settings and the ledger
+-- charIndex all follow. Where both keys exist, tables merge (new wins).
+local renames = {}
+
+local function RenameIn(t, old, new, seen)
+    if seen[t] then return end
+    seen[t] = true
+    local moved
+    for k, v in pairs(t) do
+        if v == old then
+            t[k] = new
+        elseif type(v) == "table" and k ~= "_renamed" and k ~= "charRenames" then
+            RenameIn(v, old, new, seen)
+        end
+        if k == old then moved = true end
+    end
+    if moved then
+        local from, into = t[old], t[new]
+        if type(from) == "table" and type(into) == "table" then
+            DeepMerge(into, from)
+        elseif into == nil then
+            t[new] = from
+        end
+        t[old] = nil
+    end
+end
+DB.RenameIn = function(t, old, new) RenameIn(t, old, new, {}) end
+
+local function ApplyRenames(db)
+    local root = db.root
+    for old, new in pairs(renames) do
+        if type(root._renamed) ~= "table" or not root._renamed[old] then
+            RenameIn(root, old, new, {})
+            if type(root._renamed) ~= "table" then root._renamed = {} end
+            root._renamed[old] = new
+        end
+    end
+end
+
+--- Rename character keys in every namespace, now and when created later.
+function DB.RenameChars(map)
+    for old, new in pairs(map or {}) do
+        if old ~= new then renames[old] = new end
+    end
+    for i = 1, #namespaces do
+        if namespaces[i].ok then ApplyRenames(namespaces[i]) end
+    end
+end
+
 --- Create (or return) the namespace bound to the SavedVariable svName.
 -- Call at the owning addon's ADDON_LOADED. spec = { defaults, charDefaults, version, migrations }
 function DB:Namespace(id, svName, spec)
@@ -104,6 +156,7 @@ function DB:Namespace(id, svName, spec)
     DeepMerge(root.settings, spec.defaults or {})
     db.settings = root.settings
     namespaces[#namespaces + 1] = db
+    if db.ok then ApplyRenames(db) end
     return db
 end
 

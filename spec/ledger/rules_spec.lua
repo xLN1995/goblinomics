@@ -37,4 +37,13 @@ describe("Ledger: rules", function()
         assert.is_true(R.IsOwnCharacter("xLN-Blackrock"))
         assert.is_false(R.IsOwnCharacter("Stranger"))
     end)
+
+    it("ignores the shard realm of senders with region-wide names (WoW: Forever)", function()
+        WoWMock.regionalNames = true
+        WoWMock.gameRules[Enum.GameRule.PvPRuleset] = true
+        Goblinomics.API.v1.DB.List()[1].root.chars["Alt-PvP"] = { name = "Alt" }
+        assert.is_true(R.IsOwnCharacter("Alt"))
+        assert.is_true(R.IsOwnCharacter("Alt-CAMWOWEU5Realm6PvP"))
+        assert.is_false(R.IsOwnCharacter("Stranger-CAMWOWEU5Realm6PvP"))
+    end)
 end)

@@ -16,6 +16,7 @@ ns.CHANGELOG = {
         sections = {
             { title = "Fixed", items = {
                 "The Journalator import booked items you bought or bought back from a vendor as vendor sales, so they showed up as income. Remove your Journalator import in /gob import and run it again to correct bookings that were already imported.",
+                "On WoW: Forever, Blizzard's latest patch changed how characters are identified, so Goblinomics listed every character twice. Each character now appears once again: the old entry and its bookings merge into it the next time you log in with that character. Imports from TradeSkillMaster and Journalator find your characters on Forever too.",
             } },
         },
     },
